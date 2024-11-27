@@ -1,0 +1,39 @@
+.
+├── Dockerfile
+├── README.md
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── public
+│   └── vite.svg
+├── src
+│   ├── App.css
+│   ├── App.tsx
+│   ├── assets
+│   │   ├── images
+│   │   └── react.svg
+│   ├── components
+│   │   ├── ItemDetails.tsx
+│   │   ├── RecipeDetails.tsx
+│   │   ├── RecipeItem.tsx
+│   │   └── RecipeList.tsx
+│   ├── data
+│   │   └── modkRecipes.ts
+│   ├── hooks
+│   ├── index.css
+│   ├── layouts
+│   ├── main_example.tsx
+│   ├── pages
+│   ├── services
+│   ├── styles
+│   ├── types
+│   │   └── Recipe.ts
+│   └── vite-env.d.ts
+├── structure.txt
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+
+12 directories, 24 files
