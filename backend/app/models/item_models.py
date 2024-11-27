@@ -1,35 +1,19 @@
 """
-This file will contain the definitions of your SQLAlchemy models representing the data entities in your app
-(e.g., Items, Buildings, Recipes, Users).
-Each model maps directly to a table in your database.
+./app/models/item_models.py
 """
-
-from sqlalchemy import Column, String, Integer, Numeric, Boolean, ForeignKey, Text
-from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column, registry
-from sqlalchemy import Table
-from typing import List, Optional
 from decimal import Decimal
-from typing_extensions import Annotated
+from typing import List
 
-str_30 = Annotated[str, 30]
-num_6_2 = Annotated[Decimal, 6]
-num_10_2 = Annotated[Decimal, 10]
+from sqlalchemy import Numeric
 
+from .base import Base, Mapped, mapped_column, Optional, relationship, ForeignKey, str_30, num_6_2, num_10_2, num_10_7
 
-class Base(DeclarativeBase):
-    registry = registry(
-        type_annotation_map={
-            str_30: String(30),
-            num_6_2: Numeric(6, 2),
-            num_10_2: Numeric(10, 2),
-        }
-    )
 
 class Item(Base):
     __tablename__ = 'items'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    classname: Mapped[str] = mapped_column(unique=True, nullable=False)
+    class_name: Mapped[str] = mapped_column(unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(nullable=False)
     abbreviated_display_name: Mapped[Optional[str]]
     can_be_discarded: Mapped[bool]
@@ -38,14 +22,14 @@ class Item(Base):
     crosshair_material: Mapped[Optional[str]]
     description: Mapped[Optional[str]]
     descriptor_stat_bars: Mapped[Optional[str]]
-    energy_value: Mapped[Optional[num_10_2]]
+    energy_value: Mapped[Decimal] = mapped_column(Numeric(10,2))
     fluid_color: Mapped[Optional[str]]
     form: Mapped[str_30]
     gas_color: Mapped[Optional[str]]
     gas_type: Mapped[str_30]
     is_alien_item: Mapped[bool]
-    menu_priority: Mapped[num_6_2]
-    needs_pickup_marker: Mapped[bool]
+    menu_priority: Mapped[Decimal] = mapped_column(Numeric(10,7))
+    needs_pick_up_marker: Mapped[bool]
     persistent_big_icon: Mapped[str]
     radioactive_decay: Mapped[num_6_2]
     remember_pick_up: Mapped[bool]
@@ -57,19 +41,37 @@ class Item(Base):
     stack_size: Mapped[str_30]
     sub_categories: Mapped[Optional[str]]
 
-    # Raw Resources
-    collect_speed_multiplier: Mapped[Optional[num_6_2]]
-    decal_size: Mapped[Optional[num_6_2]]
-    manual_mining_audio_name: Mapped[Optional[str_30]]
-    ping_color: Mapped[Optional[str]]
-
     # Relationships to subclass-specific attributes
     alien_power_fuel: Mapped["AlienPowerFuel"] = relationship(back_populates="item")
     component: Mapped["Component"] = relationship(back_populates="item")
     consumable: Mapped["Consumable"] = relationship(back_populates="item")
     nuclear_fuel: Mapped["NuclearFuel"] = relationship(back_populates="item")
     power_shard: Mapped["PowerShard"] = relationship(back_populates="item")
-    raw_resource: Mapped["RawResources"] = relationship(back_populates="item")
+    raw_resource: Mapped["RawResource"] = relationship(back_populates="item")
+    sinkable: Mapped["Sinkable"] = relationship(back_populates="item")
+
+    # Back references to the inputs and outputs
+    recipe_inputs: Mapped[List["RecipeInputs"]] = relationship("RecipeInputs", back_populates="item")
+    recipe_outputs: Mapped[List["RecipeOutputs"]] = relationship("RecipeOutputs", back_populates="item")
+
+    def to_dict_summary(self):
+        return {
+            "id": self.id,
+            "class_name": self.class_name,
+            "display_name": self.display_name,
+            "description": self.description,
+        }
+
+    def to_dict_detail(self):
+        item_summary_dict = self.to_dict_summary()
+        item_detail_dict = {
+        "form": self.form,
+        "stack_size": self.stack_size,
+        "energy_value": self.energy_value,
+        "radioactive_decay": self.radioactive_decay,
+        }
+        return {**item_summary_dict, **item_detail_dict}
+
 
 class AlienPowerFuel(Base):
     __tablename__ = 'alien_power_fuels'
@@ -81,14 +83,27 @@ class AlienPowerFuel(Base):
 
     item: Mapped["Item"] = relationship(back_populates="alien_power_fuel")
 
-class Component(Base):
-    __tablename__ = 'components'
+class Sinkable(Base):
+    __tablename__ = 'sinkables'
 
     id: Mapped[int] = mapped_column(primary_key=True)
     item_id: Mapped[int] = mapped_column(ForeignKey('items.id'))
     resource_sink_points: Mapped[Optional[int]]
 
+    item: Mapped["Item"] = relationship(back_populates="sinkable")
+
+class Component(Base):
+    __tablename__ = 'components'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey('items.id'))
+    building_id: Mapped[int] = mapped_column(ForeignKey('buildings.id'))
+    recipe_id: Mapped[int] = mapped_column(ForeignKey('recipes.id'))
+    recipe_type: Mapped[str]
+
     item: Mapped["Item"] = relationship(back_populates="component")
+    recipes: Mapped[List["Recipe"]] = relationship(back_populates="component")
+    buildings: Mapped[List["Building"]] = relationship(back_populates="components")
 
 class Consumable(Base):
     __tablename__ = 'consumables'
@@ -98,7 +113,7 @@ class Consumable(Base):
     custom_hands_mesh_scale: Mapped[Optional[num_6_2]]
     custom_location: Mapped[str]
     custom_rotation: Mapped[str]
-    health_gain: Mapped[num_6_2]
+    health_gain: Mapped[Optional[num_6_2]]
 
     # Back-reference to items
     item: Mapped["Item"] = relationship(back_populates="consumable")
@@ -124,7 +139,7 @@ class PowerShard(Base):
 
     item: Mapped["Item"] = relationship(back_populates="power_shard")
 
-class RawResources(Base):
+class RawResource(Base):
     __tablename__ = 'raw_resources'
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -135,81 +150,3 @@ class RawResources(Base):
     ping_color: Mapped[Optional[str]]
 
     item: Mapped["Item"] = relationship(back_populates="raw_resource")
-
-class Building(Base):
-    __tablename__ = 'buildings'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    classname: Mapped[str] = mapped_column(unique=True)
-    display_name: Mapped[str]
-    description: Mapped[str]
-    power_consumption: Mapped[Optional[float]]
-    is_variable_power: Mapped[Optional[bool]]
-    native_class: Mapped[Optional[str]]
-
-    # Relationships to subclass-specific attributes
-    extractor: Mapped["Extractor"] = relationship(back_populates="building")
-    manufacturer: Mapped["Manufacturer"] = relationship(back_populates="building")
-    smelter: Mapped["Smelter"] = relationship(back_populates="building")
-
-class Extractor(Base):
-    __tablename__ = 'extractors'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    building_id: Mapped[int] = mapped_column(ForeignKey('buildings.id'))
-    extraction_rate: Mapped[Optional[float]]
-    resource_type: Mapped[Optional[str]]
-    is_fracking_extractor: Mapped[Optional[bool]]
-
-    building: Mapped["Building"] = relationship(back_populates="extractor")
-
-class Manufacturer(Base):
-    __tablename__ = 'manufacturers'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    building_id: Mapped[int] = mapped_column(ForeignKey('buildings.id'))
-    manufacturing_speed: Mapped[Optional[float]]
-    can_produce_multiple_items: Mapped[Optional[bool]]
-
-    building: Mapped["Building"] = relationship(back_populates="manufacturer")
-
-class Smelter(Base):
-    __tablename__ = 'smelters'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    building_id: Mapped[int] = mapped_column(ForeignKey('buildings.id'))
-    smelting_speed: Mapped[Optional[float]]
-
-    building: Mapped["Building"] = relationship(back_populates="smelter")
-
-# Many-to-many relationship between recipes and items
-recipe_item_inputs = Table('recipe_item_inputs', Base.metadata,
-    Column('recipe_id', Integer, ForeignKey('recipes.id')),
-    Column('item_id', Integer, ForeignKey('items.id')),
-    Column('quantity', Numeric)
-)
-
-recipe_item_outputs = Table('recipe_item_outputs', Base.metadata,
-    Column('recipe_id', Integer, ForeignKey('recipes.id')),
-    Column('item_id', Integer, ForeignKey('items.id')),
-    Column('quantity', Numeric)
-)
-
-# Many-to-many relationship between recipes and buildings
-recipe_building = Table('recipe_building', Base.metadata,
-    Column('recipe_id', Integer, ForeignKey('recipes.id')),
-    Column('building_id', Integer, ForeignKey('buildings.id'))
-)
-
-class Recipe(Base):
-    __tablename__ = 'recipes'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    recipe_name: Mapped[str] = mapped_column(nullable=False)
-    duration: Mapped[Optional[float]]
-    is_alternate: Mapped[Optional[bool]]
-
-    # Relationships to inputs/outputs and buildings
-    inputs: Mapped["Item"] = relationship(secondary=recipe_item_inputs, back_populates="recipes_as_input")
-    outputs: Mapped["Item"] = relationship(secondary=recipe_item_outputs, back_populates="recipes_as_output")
-    buildings: Mapped["Building"] = relationship(secondary=recipe_building, back_populates="recipes")

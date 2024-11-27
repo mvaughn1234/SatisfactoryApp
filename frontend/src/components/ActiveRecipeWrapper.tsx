@@ -1,16 +1,20 @@
-import {Accordion, AccordionDetails, AccordionSummary} from "@mui/material";
+import {ExpandLess, ExpandMore} from "@mui/icons-material";
+import Collapse from "@mui/material/Collapse";
+import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
-import ListItemText from "@mui/material/ListItemText";
-import Stack from "@mui/material/Stack";
 import React, {useEffect, useState} from "react";
 import {RecipeDetail, RecipeGroupDetail} from "../types/Recipe.ts";
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+
 
 import RecipeCard from "./RecipeCard.tsx";
 
-const ActiveRecipeWrapperMulti: React.FC<RecipeGroupDetail> = ({standard_product_display_name, standard, alternate}) => {
+const ActiveRecipeWrapper: React.FC<RecipeGroupDetail> = ({
+																														standard_product_display_name,
+																														standard,
+																														alternate
+																													}) => {
 	const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetail>(standard);
-	const [remainingRecipes, setRemainingRecipes] = useState<RecipeDetail[] | []>();
+	const [remainingRecipes, setRemainingRecipes] = useState<RecipeDetail[] | []>([]);
 	const [expanded, setExpanded] = useState<boolean>(false);
 
 	useEffect(() => {
@@ -27,58 +31,60 @@ const ActiveRecipeWrapperMulti: React.FC<RecipeGroupDetail> = ({standard_product
 				setRemainingRecipes([])
 			}
 		}
-	}, []);
+	}, [alternate, standard]);
 
-	const handleChange = (expand: boolean) => (event, isExpanded) => {
-		setExpanded(expand);
+	const handleChange = () => {
+		setExpanded(!expanded);
 	};
 
 
 	return (
-		{remainingRecipes?.length > 0 ? <ListItemButton></ListItemButton>
+		remainingRecipes?.length > 0 ?
+			<React.Fragment>
+				<ListItemButton onClick={handleChange} sx={{width: '100%', pl: 0}} >
+					<RecipeCard
+						root_component={standard_product_display_name}
+						id={selectedRecipe?.id}
+						display_name={selectedRecipe.display_name}
+						class_name={selectedRecipe.class_name}
+						ingredients={selectedRecipe.ingredients}
+						products={selectedRecipe.products}
+					/>
+					{expanded ? <ExpandLess/> : <ExpandMore/>}
+				</ListItemButton>
+				<Collapse in={expanded} orientation="vertical" unmountOnExit sx={{width: '100%'}}>
+					<List sx={{width: '100%'}}>
+						{
+							remainingRecipes.map((recipe) => (
+								<ListItemButton sx={{pl: 4, width: '100%'}}>
+									<RecipeCard
+										key={`${standard_product_display_name}.${recipe.id}`}
+										root_component={standard_product_display_name}
+										id={recipe.id}
+										display_name={recipe.display_name}
+										class_name={recipe.class_name}
+										ingredients={recipe.ingredients}
+										products={recipe.products}
+									/>
+								</ListItemButton>
+							))
+						}
+					</List>
+				</Collapse>
+			</React.Fragment>
+
 			:
-			<ListItemText></ListItemText>
-}
-	<ListItemText
-		slotProps={{transition: {unmountOnExit: true}}}
-		onChange={handleChange(!expanded)}
-		expanded={expanded}
-	>
-		<ListItemText>
-			{selectedRecipe &&
-          <RecipeCard
-              root_component={standard_product_display_name}
-              id={selectedRecipe?.id}
-              display_name={selectedRecipe.display_name}
-              class_name={selectedRecipe.class_name}
-              ingredients={selectedRecipe.ingredients}
-              products={selectedRecipe.products}
-          />
-			}
-		</ListItemText>
-		{(expanded && remainingRecipes?.length > 0) && (
-			<AccordionDetails>
-				<Stack>
-					{
-						remainingRecipes.map((recipe) => (
-							<RecipeCard
-								key={`${standard_product_display_name}.${recipe.id}`}
-								root_component={standard_product_display_name}
-								id={recipe.id}
-								display_name={recipe.display_name}
-								class_name={recipe.class_name}
-								ingredients={recipe.ingredients}
-								products={recipe.products}
-							/>
-						))
-					}
-				</Stack>
-			</AccordionDetails>
-		)}
-
-	</ListItemText>
-)
-	;
+			selectedRecipe &&
+        <RecipeCard
+            root_component={standard_product_display_name}
+            id={selectedRecipe?.id}
+            display_name={selectedRecipe.display_name}
+            class_name={selectedRecipe.class_name}
+            ingredients={selectedRecipe.ingredients}
+            products={selectedRecipe.products}
+        />
+	)
+		;
 }
 
-export default ActiveRecipeWrapperMulti;
+export default ActiveRecipeWrapper;

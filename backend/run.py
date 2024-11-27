@@ -1,9 +1,13 @@
-# Entry point for starting the Flask App.
+"""
+Entry point for starting the Flask App.
+"""
 
+from dotenv import load_dotenv
 from app import create_app
+from config import Config # Import the Config class from config.py
 
-# Import the Config class from config.py
-from config import Config
+# Load the .env file
+load_dotenv()
 
 # Create the Flask app using the factory pattern and load the config
 app = create_app(Config)

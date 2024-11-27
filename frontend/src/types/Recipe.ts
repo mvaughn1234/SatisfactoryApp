@@ -1,51 +1,33 @@
-// Item.ts
-export interface Item {
-	id: number;
-	class_name: string;
-	display_name: string;
-	form: string;
-	stack_size: string;
-	// Optional properties for detailed view
-	description?: string;
-	energy_value?: number;
-	radioactive_decay?: number;
-	small_icon?: string;
-	persistent_big_icon?: string;
-}
-
-// Building.ts
-export interface Building {
-	id: number;
-	class_name: string;
-	display_name: string;
-	power_consumption?: number; // Optional: may not be needed in all views
-	// More building-related fields can be added here as needed
-}
-
 // Recipe.ts
+import {BuildingDetail} from "./Building.ts";
+import {ItemSummary} from "./Item.ts";
+
 export interface RecipeSummary {
 	id: number;
 	display_name: string;
 	class_name: string;
-	manufacturing_duration: string; // E.g., "6.00s"
-	produced_in?: Building[]; // Optional: can be null for hand-made items
+	manufactoring_duration: string; // E.g., "6.00s"
+	produced_in?: BuildingDetail[]; // Optional: can be null for hand-made items
+}
+
+export interface RecipeItem extends ItemSummary{
+	amount: number;
 }
 
 export interface RecipeDetail extends RecipeSummary {
-	ingredients: RecipeInput[];
-	products: RecipeOutput[];
+	ingredients?: RecipeItem[];
+	products?: RecipeItem[];
+	variable_power_consumption_constant: number;
+	variable_power_consumption_factor: number;
 }
 
-export interface RecipeInput {
-	item_class_name: string;
-	item_display_name: string;
-	item_id: number;
-	amount: number;
+export interface RecipeGroupDetail {
+	standard_product_display_name: string;
+	alternate?: RecipeDetail[];
+	standard: RecipeDetail;
 }
 
-export interface RecipeOutput {
-	item_class_name: string;
-	item_display_name: string;
-	item_id: number;
-	amount: number;
+export interface RecipeConfig {
+	learned: boolean;
+	excluded: boolean;
 }

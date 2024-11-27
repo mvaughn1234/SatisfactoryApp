@@ -19,7 +19,7 @@
 │   │   ├── RecipeItem.tsx
 │   │   └── RecipeList.tsx
 │   ├── data
-│   │   └── modkRecipes.ts
+│   │   └── mockRecipes.ts
 │   ├── hooks
 │   ├── index.css
 │   ├── layouts

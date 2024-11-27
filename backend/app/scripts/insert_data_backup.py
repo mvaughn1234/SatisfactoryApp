@@ -574,9 +574,6 @@ def filter_objects(game_data_json):
         for potential_object in classes:
             class_name = potential_object["class_name"]
 
-            # Find all Items, Buildings, and Recipes
-            # if class_name.startswith(("Desc_", "Build_", "Recipe_", "BP_")):
-
             # Filter Building objects
             if class_name.startswith("Build_"):
                 # Filter Building objects to only those which yield an output item
@@ -590,28 +587,6 @@ def filter_objects(game_data_json):
 
                     else:
                         supported_objects["Build_"].append(valid_object)
-
-            # # Filter Item objects
-            # if class_name.startswith("Desc_") or class_name.startswith("BP_"):
-            #     # All Items are valid
-            #     """
-            #     if class_name == "BP_ConsumeableEquipment_C":
-            #         continue
-            #     if "Desc_" not in supported_object_types:
-            #         supported_object_types.add("Desc_")
-            #         supported_objects["Desc_"] = [potential_object]
-            #     else:
-            #         supported_objects["Desc_"].append(potential_object)
-            #     """
-            #     filtering_attribute = "form"
-            #     valid_object = filter_by_attributes("Desc_",potential_object, filtering_attribute)
-            #     if valid_object is not None:
-            #         if "Desc_" not in supported_object_types:
-            #             supported_object_types.add("Desc_")
-            #             supported_objects["Desc_"] = [potential_object]
-            #
-            #         else:
-            #             supported_objects["Desc_"].append(valid_object)
 
             # Filter Recipe objects
             if class_name.startswith("Recipe_"):

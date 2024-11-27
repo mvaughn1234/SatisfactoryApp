@@ -2,7 +2,7 @@ import {Box} from "@mui/material";
 import Divider from "@mui/material/Divider";
 import React from "react";
 
-const InactiveRecipeList: React.FC = () => {
+const AllRecipesList: React.FC = () => {
 	return (
 		<Box>
 			<Divider />
@@ -11,4 +11,4 @@ const InactiveRecipeList: React.FC = () => {
 	)
 }
 
-export default InactiveRecipeList;
+export default AllRecipesList;
