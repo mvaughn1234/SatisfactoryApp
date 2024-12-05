@@ -14,8 +14,8 @@ export interface ProductionTarget {
 export interface InputCustomization {
 	id: string;
 	item: ItemSummary;            // The input item (e.g., Plastic)
-	totalAmountAvailable: number;          // Input rate (e.g., 100 plastic/min)
-	isGlobalResource: boolean; // Whether it's treated like a global resource (like raw ores)
+	total_amount_available: number;          // Input rate (e.g., 100 plastic/min)
+	is_global_resource: boolean; // Whether it's treated like a global resource (like raw ores)
 }
 
 // Interface for recipe customizations (learned, excluded, etc.)
@@ -29,8 +29,8 @@ export interface RecipeCustomization {
 export interface ProductionLine {
 	id: string;                           // Unique ID for the production line
 	name: string;                         // Name of the production line (e.g., 'Plastic Production')
-	productionTargets: ProductionTarget[];          // List of products being produced
-	inputCustomizations: InputCustomization[]; // Custom input limitations
-	recipeCustomizations: RecipeCustomization[]; // Learned/excluded/required recipes
+	production_targets: ProductionTarget[];          // List of products being produced
+	input_customizations: InputCustomization[]; // Custom input limitations
+	recipe_customizations: RecipeCustomization[]; // Learned/excluded/required recipes
 	// lastUpdated: Date;                    // Last updated timestamp for tracking changes
 }

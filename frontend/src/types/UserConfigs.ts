@@ -20,5 +20,5 @@ export interface RecipeConfigUpdate {
 	updateRecipesKnown: (id: number) => void;
 	updateRecipesExcluded: (id: number) => void;
 	updateRecipesPreferred: (id: number) => void;
-	syncUpdatesToDatabase: () => void;
+	// syncUpdatesToDatabase: () => void;
 }

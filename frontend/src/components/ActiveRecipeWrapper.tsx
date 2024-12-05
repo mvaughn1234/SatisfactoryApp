@@ -58,7 +58,7 @@ const ActiveRecipeWrapper: React.FC<RecipeGroupDetail> = ({
 							remainingRecipes.map((recipe) => (
 								<ListItemButton sx={{pl: 4, width: '100%'}}>
 									<RecipeCard
-										key={`${standard_product_display_name}.${recipe.id}`}
+										key={`${standard_product_display_name}.${recipe.id}.${recipe.display_name}`}
 										root_component={standard_product_display_name}
 										id={recipe.id}
 										display_name={recipe.display_name}

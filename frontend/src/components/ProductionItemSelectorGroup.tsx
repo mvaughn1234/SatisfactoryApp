@@ -105,14 +105,14 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) 
 
 	// Function to update global state for the active production line's targets
 	const updateGlobalLine = (newTargets: ProductionTarget[]) => {
-		updateProductionLine(activeTabId, {productionTargets: newTargets});
+		updateProductionLine(activeTabId, {production_targets: newTargets});
 	};
 
 	// Edit an existing target
 	const handleEditTarget = (id: string, product: ItemSummary | null, rate: number | null) => {
 		const currentLine = productionLines.find((line) => line['id'] === activeTabId)
 		if (currentLine) {
-			const updatedTargets = currentLine['productionTargets'].map(target =>
+			const updatedTargets = currentLine['production_targets'].map(target =>
 				target.id === id ? {...target, product, rate} : target
 			);
 			updateGlobalLine(updatedTargets); // Update global state
@@ -125,7 +125,7 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) 
 	const handleRemoveTarget = (id: string) => {
 		const currentLine = productionLines.find((line) => line['id'] === activeTabId)
 		if (currentLine) {
-			const updatedTargets = currentLine['productionTargets'].filter(target => target.id !== id);
+			const updatedTargets = currentLine['production_targets'].filter(target => target.id !== id);
 			updateGlobalLine(updatedTargets); // Update global state via context
 		}
 	};

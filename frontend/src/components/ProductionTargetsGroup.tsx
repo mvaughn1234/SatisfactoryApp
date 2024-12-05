@@ -25,14 +25,14 @@ const ProductionTargetsGroup: React.FC = () => {
 	useEffect(() => {
 		if (activeTabId) {
 			const activeLine = productionLines.find(line => line.id === activeTabId);
-			const storedProductionTargets = activeLine?.productionTargets || [];
+			const storedProductionTargets = activeLine?.production_targets || [];
 			setProductionTargets(storedProductionTargets);
 		}
 	}, [activeTabId, productionLines]);
 
 	// Function to update global state for the active production line's targets
 	const updateGlobalLine = (newTargets: ProductionTarget[]) => {
-		updateProductionLine(activeTabId, {productionTargets: newTargets});
+		updateProductionLine(activeTabId, {production_targets: newTargets});
 	};
 
 	const sequenceTarget = () => {
@@ -59,7 +59,7 @@ const ProductionTargetsGroup: React.FC = () => {
 
 	return (
 		<Stack>
-			{(selectedLine?.productionTargets?.length || 0) > 0 && (
+			{(selectedLine?.production_targets?.length || 0) > 0 && (
 				<Paper
 					elevation={1}
 					sx={{
@@ -73,7 +73,7 @@ const ProductionTargetsGroup: React.FC = () => {
 					<Stack direction="row">
 						<Stack>
 							{/* Map the existing production targets */}
-							{selectedLine?.productionTargets.map(target => (
+							{selectedLine?.production_targets.map(target => (
 								<MemoizedSelectorGroup
 									key={`${activeTabId}-${target.id}`}
 									target={target}

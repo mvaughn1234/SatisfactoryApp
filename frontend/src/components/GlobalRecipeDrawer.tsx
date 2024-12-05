@@ -2,19 +2,9 @@
 import {ChevronLeft as ChevronLeftIcon, ExpandLess, StarBorder} from '@mui/icons-material';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import TuneIcon from '@mui/icons-material/Tune';
-import {
-	Checkbox,
-	Divider,
-	Drawer,
-	IconButton,
-	List,
-	Box,
-	ListItemButton,
-	ListItemIcon,
-	ListItemText,
-	TextField
-} from '@mui/material';
+import {Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, TextField} from '@mui/material';
 import Collapse from "@mui/material/Collapse";
+import Skeleton from '@mui/material/Skeleton';
 import Stack from "@mui/material/Stack";
 import {styled} from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
@@ -25,7 +15,6 @@ import {useAppContext} from "../store/AppContext.tsx";
 import {useRecipeConfigState, useRecipeConfigUpdate} from "../store/RecipeConfigStore.tsx";
 import theme from "../theme/theme.ts";
 import RecipeListItem from "./RecipeListItem.tsx";
-import Skeleton from '@mui/material/Skeleton';
 
 // Memoize recipe item to prevent unnecessary re-renders
 const MemoizedRecipeListItem = React.memo(RecipeListItem, (prevProps, nextProps) => {
@@ -51,7 +40,7 @@ const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, glo
 	const [configOpen, setConfigOpen] = useState(false);
 	const {loadingRecipeConfigs, recipeConfigs} = useRecipeConfigState();
 	const {loadingRecipesComponentsDetail, recipesComponentsDetail} = useAppContext();
-	const {syncUpdatesToDatabase} = useRecipeConfigUpdate();
+	// const {syncUpdatesToDatabase} = useRecipeConfigUpdate();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 	const handleClick = () => {
@@ -77,7 +66,7 @@ const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, glo
 				<DrawerHeader>
 					<Typography sx={{pr: 7}}>All Recipes</Typography>
 					<IconButton onClick={() => {
-						syncUpdatesToDatabase();
+						// syncUpdatesToDatabase();
 						drawerClose();
 					}}>
 						<ChevronLeftIcon/>

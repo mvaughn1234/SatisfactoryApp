@@ -1,6 +1,8 @@
 import React, {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {useFetchItemsComponentsDetail} from "../hooks/itemHooks.ts";
 import {useFetchRecipesComponentsDetail, useFetchRecipesGroupedDetail} from "../hooks/recipeHooks.ts";
+import {useFetchProductionLines, useUpdateUserProductionLine} from "../hooks/userHooks.ts";
+import {updateUserProductionLine} from "../services/userConfigService.ts";
 import {ItemDetail} from "../types/Item.ts";
 import {ProductionLine} from "../types/ProductionLine";
 import {RecipeDetail, RecipeGroupDetail} from "../types/Recipe.ts";
@@ -37,9 +39,9 @@ export const AppProvider: React.FC = ({children}) => {
 		{
 			id: '0', // Default to Tab 0
 			name: 'Default Production Line',
-			productionTargets: [],
-			inputCustomizations: [],
-			recipeCustomizations: [],
+			production_targets: [],
+			input_customizations: [],
+			recipe_customizations: [],
 			// lastUpdated: new Date(),
 		}
 	]);
@@ -52,10 +54,12 @@ export const AppProvider: React.FC = ({children}) => {
 	const [loadingItemsComponentsDetail, setLoadingItemsComponentsDetail] = useState<boolean>(false);  // Loading state for items
 	const [loadingRecipesComponentsDetail, setLoadingRecipesComponentsDetail] = useState<boolean>(false);  // Loading state for recipes
 	const [loadingRecipesGroupedDetail, setLoadingRecipesGroupedDetail] = useState<boolean>(false);  // Loading state for recipes
+	const [loadingProductionLines, setLoadingProductionLines] = useState<boolean>(false);  // Loading state for recipes
 
 	const {fetchedItemsComponentsDetail} = useFetchItemsComponentsDetail();
 	const {fetchedRecipesGroupedDetail} = useFetchRecipesGroupedDetail();
 	const {fetchedRecipesComponentsDetail} = useFetchRecipesComponentsDetail();
+	const {fetchedProductionLines} = useFetchProductionLines();
 
 	// Initialize production lines from local storage or with a default line
 	useEffect(() => {
@@ -63,6 +67,7 @@ export const AppProvider: React.FC = ({children}) => {
 		setLoadingItemsComponentsDetail(fetchedItemsComponentsDetail.loading);
 		setLoadingRecipesComponentsDetail(fetchedRecipesComponentsDetail.loading);
 		setLoadingRecipesGroupedDetail(fetchedRecipesGroupedDetail.loading);
+		setLoadingProductionLines(fetchedProductionLines.loading);
 
 		// Update items state when data loads
 		if (!fetchedItemsComponentsDetail.loading && fetchedItemsComponentsDetail.data.length) {
@@ -80,6 +85,13 @@ export const AppProvider: React.FC = ({children}) => {
 			setLoadingRecipesGroupedDetail(false); // Done loading grouped recipes
 		}
 
+		// Update productionLines state when data loads
+		if (!fetchedProductionLines.loading && fetchedProductionLines.data) {
+			setProductionLines(fetchedProductionLines.data);
+			setLoadingProductionLines(false); // Done loading grouped recipes
+		}
+
+
 		// Handle errors
 		if (fetchedItemsComponentsDetail.error) {
 			console.error("Error loading items:", fetchedItemsComponentsDetail.error);
@@ -90,15 +102,18 @@ export const AppProvider: React.FC = ({children}) => {
 		if (fetchedRecipesGroupedDetail.error) {
 			console.error("Error loading grouped recipes:", fetchedRecipesGroupedDetail.error);
 		}
-	}, [fetchedItemsComponentsDetail, fetchedRecipesGroupedDetail, fetchedRecipesComponentsDetail]);
+		if (fetchedProductionLines.error) {
+			console.error("Error loading grouped recipes:", fetchedProductionLines.error);
+		}
+	}, [fetchedItemsComponentsDetail, fetchedRecipesGroupedDetail, fetchedRecipesComponentsDetail, fetchedProductionLines]);
 
 	const addProductionLine = (name: string) => {
 		const newLine: ProductionLine = {
 			id: `${productionLines.length}`,
 			name,
-			productionTargets: [],
-			inputCustomizations: [],
-			recipeCustomizations: [],
+			production_targets: [],
+			input_customizations: [],
+			recipe_customizations: [],
 			// lastUpdated: new Date(),
 		};
 		setProductionLines([...productionLines, newLine]);
@@ -111,7 +126,13 @@ export const AppProvider: React.FC = ({children}) => {
 				line.id === id ? {...line, ...updates} : line
 			)
 		);
-	};
+		(async () => {
+			try {
+				await updateUserProductionLine(id, updates);
+			} catch (err) {
+				console.error("Error loading grouped recipes:", err);
+			}
+		})();	};
 
 	useEffect(() => {
 
