@@ -17,14 +17,18 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 																								 ingredients,
 																								 products,
 																							 }) => {
-	const [hoveredCard, setHoveredCard] = useState(false);
+	const [detailCard, setDetailCard] = useState(false);
+
+	// const handleClick = () => {
+	// 	setDetailCard(!detailCard);
+	// }
 
 	const handleMouseEnter = () => {
-		setHoveredCard(true);
+		setDetailCard(true);
 	}
 
 	const handleMouseLeave = () => {
-		setHoveredCard(false);
+		setDetailCard(false);
 	}
 
 	return (
@@ -37,6 +41,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 				marginBottom: "8px",
 				width: "100%",
 			}}
+			// onClick={handleClick}
 			onMouseEnter={handleMouseEnter}
 			onMouseLeave={handleMouseLeave}
 		>
@@ -76,7 +81,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 					)}
 				</Grid>
 
-				{hoveredCard && (
+				{detailCard && (
 					<>
 						{/* Ingredients List */}
 						<Grid

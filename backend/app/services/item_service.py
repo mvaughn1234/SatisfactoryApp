@@ -28,12 +28,20 @@ class ItemService:
     @staticmethod
     def get_item_by_id_summary(item_id):
         with get_session() as session:
-            item = session.query(Item).filter(Item.id == item_id).first()
+            if isinstance(item_id, int):
+                item = session.query(Item).filter(Item.id == item_id).first()
 
-            if item is None:
-                return None
+                if item is None:
+                    return None
 
-            return item.to_dict_summary()
+                return item.to_dict_summary()
+            if isinstance(item_id, list):
+                items = session.query(Item).filter(Item.id.in_(item_id)).all()
+
+                if items is None:
+                    return None
+
+                return [item.to_dict_summary() for item in items]
 
     @staticmethod
     def get_item_by_id_detail(item_id):

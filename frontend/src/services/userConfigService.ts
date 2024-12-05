@@ -1,18 +1,19 @@
 // /src/services/userConfigService.ts
 
 import {getUserKey} from "./userKeyUtility.ts";
-import {CALCULATOR_API_URL} from '../constants/constants';
+import {USER_CONFIG_API_URL} from '../constants/constants';
 
 
-export const saveRecipe = async (recipeConfig: any) => {
+export const updateUserRecipeConfig = async (config: any) => {
 	const userKey = getUserKey();
 
-	const response = await fetch(`${CALCULATOR_API_URL}/`, {
+	const response = await fetch(`${USER_CONFIG_API_URL}/config/recipes`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${userKey}`, // Use Authorization header for security
 		},
-		body: JSON.stringify({ userKey, recipeConfig }),
+		body: JSON.stringify({ config }),
 	});
 
 	if (!response.ok) {
@@ -22,10 +23,10 @@ export const saveRecipe = async (recipeConfig: any) => {
 	return response.json();
 };
 
-export const getRecipes = async () => {
+export const fetchUserRecipeConfig = async () => {
 	const userKey = getUserKey();
 
-	const response = await fetch(`${CALCULATOR_API_URL}/recipes`, {
+	const response = await fetch(`${USER_CONFIG_API_URL}/config/recipes`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',

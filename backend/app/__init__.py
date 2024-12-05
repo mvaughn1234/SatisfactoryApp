@@ -11,6 +11,8 @@ from flask_cors import CORS
 from app.scripts.insert_data import initialize_database
 # Ensure models are imported
 
+import logging
+
 # Create the SQLAlchemy object (used to manage database models)
 db = SQLAlchemy()
 
@@ -33,6 +35,9 @@ def create_app(config_class):
 
     db.init_app(app)
     migrate.init_app(app, db)
+
+    logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
     # Import all models explicitly
     from app.models.item_models import Item, AlienPowerFuel, Component, Consumable, NuclearFuel, PowerShard, RawResource

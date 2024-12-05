@@ -1,12 +1,16 @@
-import React, {useCallback, useState} from 'react';
-import {ListItem, Stack, Checkbox, Typography, Box, Paper} from '@mui/material';
-import {styled} from '@mui/material/styles';
+import {Box, Checkbox, ListItem, Paper, Typography} from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import {useRecipeConfigState, useRecipeConfigUpdate} from '../store/RecipeConfigStore.tsx';
+import {styled} from '@mui/material/styles';
+import React, {useCallback, useState} from 'react';
+import {useRecipeConfigUpdate} from '../store/RecipeConfigStore.tsx';
 import {RecipeDetail} from "../types/Recipe.ts";
+import {RecipeConfigData} from "../types/UserConfigs.ts";
 
 interface RecipeListItemProps {
 	recipe: RecipeDetail;
+	conf_known: boolean;
+	conf_excluded: boolean;
+	conf_preferred: boolean;
 }
 
 const Item = styled(Paper)(({theme}) => ({
@@ -21,15 +25,16 @@ const Item = styled(Paper)(({theme}) => ({
 }));
 
 
-const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe}) => {
-	const {updateRecipesLearned, updateRecipesExcluded} = useRecipeConfigUpdate();
-	const [learned, setLearned] = useState(false);
-	const [excluded, setExcluded] = useState(false);
+const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf_excluded, conf_preferred}) => {
+	const {updateRecipesKnown, updateRecipesExcluded} = useRecipeConfigUpdate();
+	const [known, setKnown] = useState<boolean>(conf_known);
+	const [excluded, setExcluded] = useState<boolean>(conf_excluded);
+	const [preferred, setPreferred] = useState<boolean>(conf_preferred);
 
 	const handleLearnRecipe = useCallback(() => {
-		updateRecipesLearned(recipe.id);
-		setLearned((prev) => !prev);
-	}, [updateRecipesLearned, recipe.id]);
+		updateRecipesKnown(recipe.id);
+		setKnown((prev) => !prev);
+	}, [updateRecipesKnown, recipe.id]);
 
 	const handleExcludeRecipe = useCallback(() => {
 		updateRecipesExcluded(recipe.id);
@@ -42,8 +47,10 @@ const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe}) => {
 				<Grid container spacing={0}>
 					<Grid size={2}>
 						<Item>
-							{recipe.display_name.startsWith("Alternate") &&
-                  <Checkbox checked={learned} onChange={handleLearnRecipe} size="small"/>
+							{recipe.display_name.startsWith("Alternate") ?
+                  <Checkbox checked={known} onChange={handleLearnRecipe} size="small"/>
+								:
+                  <Checkbox checked={true} disabled onChange={handleLearnRecipe} size="small"/>
 							}
 						</Item>
 					</Grid>
@@ -61,18 +68,6 @@ const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe}) => {
 			</Box>
 		</ListItem>
 	);
-	// return (
-	// 	<ListItem disablePadding>
-	// 		<Stack direction="row">
-	// 			{recipe.display_name.startsWith("Alternate") ? <Checkbox checked={learned} onChange={handleLearnRecipe} size="small"/>
-	// 				:
-	// 				<Box sx={{width: '33px'}}/>
-	// 			}
-	// 			<Typography>{recipe.display_name}</Typography>
-	// 			<Checkbox checked={excluded} onChange={handleExcludeRecipe} size="small"/>
-	// 		</Stack>
-	// 	</ListItem>
-	// );
 };
 
 export default RecipeListItem;

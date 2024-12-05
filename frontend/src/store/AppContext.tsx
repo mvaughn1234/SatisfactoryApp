@@ -1,7 +1,6 @@
 import React, {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {useFetchItemsComponentsDetail} from "../hooks/itemHooks.ts";
 import {useFetchRecipesComponentsDetail, useFetchRecipesGroupedDetail} from "../hooks/recipeHooks.ts";
-import {initializeUserKey} from "../services/userConfigService.ts";
 import {ItemDetail} from "../types/Item.ts";
 import {ProductionLine} from "../types/ProductionLine";
 import {RecipeDetail, RecipeGroupDetail} from "../types/Recipe.ts";
@@ -57,10 +56,6 @@ export const AppProvider: React.FC = ({children}) => {
 	const {fetchedItemsComponentsDetail} = useFetchItemsComponentsDetail();
 	const {fetchedRecipesGroupedDetail} = useFetchRecipesGroupedDetail();
 	const {fetchedRecipesComponentsDetail} = useFetchRecipesComponentsDetail();
-
-	useEffect(() =>{
-		initializeUserKey()
-	}, [])
 
 	// Initialize production lines from local storage or with a default line
 	useEffect(() => {

@@ -53,6 +53,7 @@ class Item(Base):
     # Back references to the inputs and outputs
     recipe_inputs: Mapped[List["RecipeInputs"]] = relationship("RecipeInputs", back_populates="item")
     recipe_outputs: Mapped[List["RecipeOutputs"]] = relationship("RecipeOutputs", back_populates="item")
+    production_line_target: Mapped[List["ProductionLineTarget"]] = relationship("ProductionLineTarget", back_populates="item")
 
     def to_dict_summary(self):
         return {

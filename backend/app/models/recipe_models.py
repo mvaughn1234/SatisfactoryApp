@@ -28,6 +28,7 @@ class Recipe(Base):
     outputs: Mapped[List["RecipeOutputs"]] = relationship("RecipeOutputs", back_populates="recipe")
     compatible_buildings: Mapped[List["RecipeCompatibleBuildings"]] = relationship("RecipeCompatibleBuildings",
                                                                                    back_populates="recipe")
+    user_recipe_config: Mapped["UserRecipeConfig"] = relationship("UserRecipeConfig", back_populates="recipe")
 
 
     def to_dict_summary(self):

@@ -22,7 +22,7 @@ import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import React, {useState} from 'react';
 import {useAppContext} from "../store/AppContext.tsx";
-import {useRecipeConfigState} from "../store/RecipeConfigStore.tsx";
+import {useRecipeConfigState, useRecipeConfigUpdate} from "../store/RecipeConfigStore.tsx";
 import theme from "../theme/theme.ts";
 import RecipeListItem from "./RecipeListItem.tsx";
 import Skeleton from '@mui/material/Skeleton';
@@ -31,7 +31,10 @@ import Skeleton from '@mui/material/Skeleton';
 const MemoizedRecipeListItem = React.memo(RecipeListItem, (prevProps, nextProps) => {
 	// Return true if the props haven't changed to avoid re-rendering
 	return (
-		prevProps.recipe === nextProps.recipe
+		prevProps.recipe === nextProps.recipe,
+		prevProps.conf_known === nextProps.conf_known,
+		prevProps.conf_excluded === nextProps.conf_excluded,
+		prevProps.conf_preferred === nextProps.conf_preferred
 	);
 });
 
@@ -46,8 +49,9 @@ const DrawerHeader = styled('div')(({theme}) => ({
 
 const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, globalRecipeDrawerWidth: number }> = ({open, drawerClose, globalRecipeDrawerWidth}) => {
 	const [configOpen, setConfigOpen] = useState(false);
+	const {loadingRecipeConfigs, recipeConfigs} = useRecipeConfigState();
 	const {loadingRecipesComponentsDetail, recipesComponentsDetail} = useAppContext();
-	const {loadingRecipeConfigs} = useRecipeConfigState();
+	const {syncUpdatesToDatabase} = useRecipeConfigUpdate();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 	const handleClick = () => {
@@ -72,7 +76,10 @@ const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, glo
 				<Toolbar/>
 				<DrawerHeader>
 					<Typography sx={{pr: 7}}>All Recipes</Typography>
-					<IconButton onClick={drawerClose}>
+					<IconButton onClick={() => {
+						syncUpdatesToDatabase();
+						drawerClose();
+					}}>
 						<ChevronLeftIcon/>
 					</IconButton>
 				</DrawerHeader>
@@ -114,10 +121,13 @@ const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, glo
 						overflow: 'auto'
 					}}
 				>
-					{(!loadingRecipeConfigs && !loadingRecipesComponentsDetail) ? recipesComponentsDetail.map((recipe) => (
+					{!(loadingRecipeConfigs && loadingRecipesComponentsDetail) ? recipesComponentsDetail.map((recipe) => (
 							<MemoizedRecipeListItem
 								key={recipe.id}
 								recipe={recipe}
+								conf_known={recipeConfigs[recipe.id].known || false}
+								conf_excluded={recipeConfigs[recipe.id].excluded || false}
+								conf_preferred={recipeConfigs[recipe.id].preferred || false}
 							/>
 						))
 						:

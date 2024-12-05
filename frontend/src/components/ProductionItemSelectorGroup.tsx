@@ -78,7 +78,7 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) 
 	}, [product]);
 
 	useEffect(() => {
-		if (isDummy && product && rate !== null && onAdd) {
+		if (isDummy && product && rate !== null && onAdd && rate !== 0 && rate != 0) {
 			const handler = setTimeout(() => {
 				onAdd(product, rate);
 			}, DEBOUNCE_DELAY)
@@ -99,8 +99,9 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) 
 	};
 
 	const handleRateBlur = () => {
-		handleEditTarget(target.id, product, rate)
-	}
+		const parsedRate = rate !== '' && rate !== null ? parseFloat(rate) : null; // Convert string to float
+		handleEditTarget(target.id, product, !isNaN(parsedRate) ? parsedRate : null);
+	};
 
 	// Function to update global state for the active production line's targets
 	const updateGlobalLine = (newTargets: ProductionTarget[]) => {
@@ -165,10 +166,11 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) 
 				label={(isDummy || !rate) ? "Rate" : ''}
 				type="number"
 				value={rate || ''}
-				onChange={(e) => setRate(e.target.value ? parseInt(e.target.value, 10) : null)}
+				onChange={(e) => setRate(e.target.value)}
 				variant="standard"
 				inputRef={rateInputRef}
-				onBlur={handleRateBlur} // Trigger commit to global state on losing focus
+				onBlur={handleRateBlur}
+				// Trigger commit to global state on losing focus
 				onKeyDown={handleKeyDown} // Trigger blur on Enter
 				sx={{ml: 2, maxWidth: 100, minWidth: 50}}
 			/>
