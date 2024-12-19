@@ -6,14 +6,13 @@ import {Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListIte
 import Collapse from "@mui/material/Collapse";
 import Skeleton from '@mui/material/Skeleton';
 import Stack from "@mui/material/Stack";
-import {styled} from "@mui/material/styles";
+import {useTheme, styled} from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import React, {useState} from 'react';
-import {useAppContext} from "../store/AppContext.tsx";
-import {useRecipeConfigState, useRecipeConfigUpdate} from "../store/RecipeConfigStore.tsx";
-import theme from "../theme/theme.ts";
+import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
+import {useRecipeConfigState} from "../store/RecipeConfigStore.tsx";
 import RecipeListItem from "./RecipeListItem.tsx";
 
 // Memoize recipe item to prevent unnecessary re-renders
@@ -39,9 +38,11 @@ const DrawerHeader = styled('div')(({theme}) => ({
 const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, globalRecipeDrawerWidth: number }> = ({open, drawerClose, globalRecipeDrawerWidth}) => {
 	const [configOpen, setConfigOpen] = useState(false);
 	const {loadingRecipeConfigs, recipeConfigs} = useRecipeConfigState();
-	const {loadingRecipesComponentsDetail, recipesComponentsDetail} = useAppContext();
+	const {loading, recipesComponentsDetail} = useAppStaticData();
 	// const {syncUpdatesToDatabase} = useRecipeConfigUpdate();
+	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
 
 	const handleClick = () => {
 		setConfigOpen(!configOpen);
@@ -110,13 +111,13 @@ const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, glo
 						overflow: 'auto'
 					}}
 				>
-					{!(loadingRecipeConfigs && loadingRecipesComponentsDetail) ? recipesComponentsDetail.map((recipe) => (
+					{!(loading && loadingRecipeConfigs) ? recipesComponentsDetail.map((recipe) => (
 							<MemoizedRecipeListItem
 								key={recipe.id}
 								recipe={recipe}
 								conf_known={recipeConfigs[recipe.id].known || false}
 								conf_excluded={recipeConfigs[recipe.id].excluded || false}
-								conf_preferred={recipeConfigs[recipe.id].preferred || false}
+								conf_preferred={recipeConfigs[recipe.id].preferred || recipe.id}
 							/>
 						))
 						:

@@ -14,65 +14,71 @@ from app.utils import get_session  # Assuming you save the context manager in se
 
 class RecipeService:
     @staticmethod
-    def get_recipe_inputs(session: SessionLocal, recipe_ids: [int]) -> dict:
-        # Gather related inputs
-        inputs = session.query(RecipeInputs.recipe_id, Item, RecipeInputs.input_quantity).join(Item).filter(
-            RecipeInputs.recipe_id.in_(recipe_ids)).all()
+    def get_recipe_inputs(recipe_ids: [int]) -> dict:
+        with get_session() as session:
+            # Gather related inputs
+            inputs = session.query(RecipeInputs.recipe_id, Item, RecipeInputs.input_quantity).join(Item).filter(
+                RecipeInputs.recipe_id.in_(recipe_ids)).all()
 
-        # Create a dictionary where the key is the recipe id and the value is a list of ingredient Items
-        recipes_to_ingredients = defaultdict(list)
+            # Create a dictionary where the key is the recipe id and the value is a list of ingredient Items
+            recipes_to_ingredients = defaultdict(list)
 
-        # Organize the results: group the ingredients by their producing recipe
-        for recipe_id, input_item, amount in inputs:
-            # Call the to_dict() method on each ingredient item and store in the dictionary
-            input_item_summary = input_item.to_dict_summary()
-            input_item_summary['amount'] = amount
-            recipes_to_ingredients[recipe_id].append(input_item_summary)
+            # Organize the results: group the ingredients by their producing recipe
+            for recipe_id, input_item, amount in inputs:
+                # Call the to_dict() method on each ingredient item and store in the dictionary
+                input_item_summary = input_item.to_dict_summary()
+                input_item_summary['amount'] = amount
+                recipes_to_ingredients[recipe_id].append(input_item_summary)
 
-        return recipes_to_ingredients
-
-    @staticmethod
-    def get_recipe_outputs(session: SessionLocal, recipe_ids: [int]) -> dict:
-        # Gather related outputs
-        outputs = session.query(RecipeOutputs.recipe_id, Item, RecipeOutputs.output_quantity).join(Item).filter(
-            RecipeOutputs.recipe_id.in_(recipe_ids)).all()
-
-        # Create a dictionary where the key is the recipe id and the value is a list of product Items
-        recipes_to_products = defaultdict(list)
-
-        # Organize the results: group the products by their producing recipe
-        for recipe_id, output_item, amount in outputs:
-            # Call the to_dict() method on each ingredient item and store in the dictionary
-            output_item_summary = output_item.to_dict_summary()
-            output_item_summary['amount'] = amount
-            recipes_to_products[recipe_id].append(output_item_summary)
-
-        return recipes_to_products
+            return recipes_to_ingredients
 
     @staticmethod
-    def get_recipe_buildings(session: SessionLocal, recipe_ids: [int]) -> dict:
-        # Perform a LEFT OUTER JOIN to handle cases where building_id is NULL
-        producing_building = aliased(Building)
-        buildings = (
-            session.query(RecipeCompatibleBuildings.recipe_id, producing_building)
-            .outerjoin(producing_building,
-                       RecipeCompatibleBuildings.building_id == producing_building.id)  # LEFT OUTER JOIN
-            .filter(RecipeCompatibleBuildings.recipe_id.in_(recipe_ids))
-            .order_by(RecipeCompatibleBuildings.recipe_id)
-            .all()
-        )
-        # Create a dictionary where the key is the recipe_id and the value is a list of compatible Buildings
-        recipes_to_buildings = {}
+    def get_recipe_outputs(recipe_ids: [int]) -> dict:
+        with get_session() as session:
+            # Gather related outputs
+            outputs = session.query(RecipeOutputs.recipe_id, Item, RecipeOutputs.output_quantity).join(Item).filter(
+                RecipeOutputs.recipe_id.in_(recipe_ids)).all()
 
-        # Organize the results: group the buildings by their associated recipe
-        for recipe_id, building in buildings:
-            # Check if building is None (i.e., building_id was NULL)
-            if building:
-                recipes_to_buildings[recipe_id] = (building.to_dict_summary())
-            else:
-                recipes_to_buildings[recipe_id] = None
+            # Create a dictionary where the key is the recipe id and the value is a list of product Items
+            recipes_to_products = defaultdict(list)
 
-        return recipes_to_buildings
+            # Organize the results: group the products by their producing recipe
+            for recipe_id, output_item, amount in outputs:
+                # Call the to_dict() method on each ingredient item and store in the dictionary
+                output_item_summary = output_item.to_dict_summary()
+                output_item_summary['amount'] = amount
+                recipes_to_products[recipe_id].append(output_item_summary)
+
+            return recipes_to_products
+
+    @staticmethod
+    def get_recipe_buildings(recipe_ids: [int]) -> dict:
+        with get_session() as session:
+            # Perform a LEFT OUTER JOIN to handle cases where building_id is NULL
+            producing_building = aliased(Building)
+            buildings = (
+                session.query(RecipeCompatibleBuildings.recipe_id, producing_building)
+                .outerjoin(producing_building,
+                           RecipeCompatibleBuildings.building_id == producing_building.id)  # LEFT OUTER JOIN
+                .filter(RecipeCompatibleBuildings.recipe_id.in_(recipe_ids))
+                .order_by(RecipeCompatibleBuildings.recipe_id)
+                .all()
+            )
+            # Create a dictionary where the key is the recipe_id and the value is a list of compatible Buildings
+            recipes_to_buildings = {}
+
+            # Organize the results: group the buildings by their associated recipe
+            for recipe_id, building in buildings:
+                # Check if building is None (i.e., building_id was NULL)
+                if building:
+                    if int(recipe_id) in recipes_to_buildings:
+                        recipes_to_buildings[int(recipe_id)].append(building.to_dict_summary())
+                    else:
+                        recipes_to_buildings[int(recipe_id)] = [building.to_dict_summary()]
+                else:
+                    recipes_to_buildings[int(recipe_id)] = None
+
+            return recipes_to_buildings
 
     @staticmethod
     def get_all_recipes_summary():
@@ -86,7 +92,7 @@ class RecipeService:
             print("test3")
             recipe_ids = [recipe.id for recipe in all_recipes]
 
-            all_produced_in = RecipeService.get_recipe_buildings(session, recipe_ids)
+            all_produced_in = RecipeService.get_recipe_buildings(recipe_ids)
 
             all_recipes_summary = [recipe.to_dict_summary() for recipe in all_recipes]
             all_recipes_summary_updated = []
@@ -110,9 +116,9 @@ class RecipeService:
 
             recipe_ids = [recipe.id for recipe in all_recipes]
 
-            all_ingredients = RecipeService.get_recipe_inputs(session, recipe_ids)
-            all_products = RecipeService.get_recipe_outputs(session, recipe_ids)
-            all_produced_in = RecipeService.get_recipe_buildings(session, recipe_ids)
+            all_ingredients = RecipeService.get_recipe_inputs(recipe_ids)
+            all_products = RecipeService.get_recipe_outputs(recipe_ids)
+            all_produced_in = RecipeService.get_recipe_buildings(recipe_ids)
 
             all_recipes_details = [recipe.to_dict_detail() for recipe in all_recipes]
             all_recipes_details_updated = []
@@ -133,30 +139,34 @@ class RecipeService:
             return all_recipes_details_updated
 
     @staticmethod
-    def get_recipe_by_id_detail(recipe_id):
+    def get_recipe_by_id_detail(recipe_id_data: [int]) -> list:
         with get_session() as session:
-            recipe = session.query(Recipe).filter(Recipe.id == recipe_id).first()
+            recipes = session.query(Recipe).filter(Recipe.id.in_(recipe_id_data)).all()
 
-            if not recipe:
-                return None
+            if not recipes:
+                return []
 
-            ingredients = RecipeService.get_recipe_inputs(session, [recipe.id])
-            products = RecipeService.get_recipe_outputs(session, [recipe.id])
-            produced_in = RecipeService.get_recipe_buildings(session, [recipe.id])
+            recipes_to_return = []
 
-            ingredients = ingredients[recipe.id] if recipe.id in ingredients else []
-            products = products[recipe.id] if recipe.id in products else []
-            produced_in = produced_in[recipe.id] if recipe.id in produced_in else []
+            for recipe in recipes:
+                ingredients = RecipeService.get_recipe_inputs([recipe.id])
+                products = RecipeService.get_recipe_outputs([recipe.id])
+                produced_in = RecipeService.get_recipe_buildings([recipe.id])
 
-            recipe_to_return = recipe.to_dict_detail()
+                ingredients = ingredients[recipe.id] if recipe.id in ingredients else []
+                products = products[recipe.id] if recipe.id in products else []
+                produced_in = produced_in[recipe.id] if recipe.id in produced_in else []
 
-            recipe_update_details = {
-                'ingredients': ingredients,
-                'products': products,
-                'produced_in': produced_in,
-            }
+                recipe_to_return = recipe.to_dict_detail()
 
-            return {**recipe_to_return, **recipe_update_details}
+                recipe_update_details = {
+                    'ingredients': ingredients,
+                    'products': products,
+                    'produced_in': produced_in,
+                }
+                recipes_to_return.append({**recipe_to_return, **recipe_update_details})
+
+            return recipes_to_return
 
     @staticmethod
     def get_recipe_by_id_summary(recipe_id):
@@ -208,12 +218,13 @@ class RecipeService:
             if not recipe_compatible_buildings:
                 return [{"message": f"no recipes in {building.display_name}"}]
 
-            recipes_to_return = []
+            recipe_ids_in_building = [building.recipe_id for building in recipe_compatible_buildings]
+            recipes_to_return = RecipeService.get_recipe_by_id_detail(recipe_ids_in_building)
 
-            for recipe_compatible_building in recipe_compatible_buildings:
-                recipe_item = RecipeService.get_recipe_by_id_detail(recipe_compatible_building.recipe_id)
-                if recipe_item:
-                    recipes_to_return.append(recipe_item)
+            # for recipe_compatible_building in recipe_compatible_buildings:
+            #     recipe_item = RecipeService.get_recipe_by_id_detail(recipe_compatible_building.recipe_id)
+            #     if recipe_item:
+            #         recipes_to_return.append(recipe_item)
 
             return recipes_to_return
 
@@ -246,9 +257,9 @@ class RecipeService:
             ).all()
 
             recipe_ids = [component.recipe_id for component,_,_ in components]
-            recipe_inputs = RecipeService.get_recipe_inputs(session, recipe_ids)
-            recipe_outputs = RecipeService.get_recipe_outputs(session, recipe_ids)
-            recipe_buildings = RecipeService.get_recipe_buildings(session, recipe_ids)
+            recipe_inputs = RecipeService.get_recipe_inputs(recipe_ids)
+            recipe_outputs = RecipeService.get_recipe_outputs(recipe_ids)
+            recipe_buildings = RecipeService.get_recipe_buildings(recipe_ids)
 
             # Create a dictionary where the key is the component display name and the value is
             # a dictionary of associated recipes as default recipes, or alternate recipes.
@@ -285,9 +296,9 @@ class RecipeService:
             ).all()
 
             recipe_ids = [component.recipe_id for component,_,_ in components]
-            recipe_inputs = RecipeService.get_recipe_inputs(session, recipe_ids)
-            recipe_outputs = RecipeService.get_recipe_outputs(session, recipe_ids)
-            recipe_buildings = RecipeService.get_recipe_buildings(session, recipe_ids)
+            recipe_inputs = RecipeService.get_recipe_inputs(recipe_ids)
+            recipe_outputs = RecipeService.get_recipe_outputs(recipe_ids)
+            recipe_buildings = RecipeService.get_recipe_buildings(recipe_ids)
 
             # Create a dictionary where the key is the component display name and the value is
             # a dictionary of associated recipes as default recipes, or alternate recipes.

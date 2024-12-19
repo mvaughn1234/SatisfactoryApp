@@ -1,10 +1,21 @@
-import {RECIPE_API_URL} from "../constants/constants.ts";
+import {CALCULATOR_API_URL} from "../constants/constants.ts";
+import {getUserKey} from "./userKeyUtility.ts";
 
-export const fetchRecipesComponentsDetail = async () => {
-	try {
-		const response = await fetch(`${RECIPE_API_URL}/components/detail/`);
-		return await response.json();
-	} catch (error) {
-		console.error('Error fetching detailed component recipes:', error);
+export const fetchLineOptimizationCalculation = async (activeTabId: string) => {
+	const userKey = getUserKey();
+
+	const response = await fetch(`${CALCULATOR_API_URL}/`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${userKey}`, // Use Authorization header for security
+		},
+		body: JSON.stringify({ "line": activeTabId }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to save recipe config: ${response.statusText}`);
 	}
+
+	return response.json();
 };

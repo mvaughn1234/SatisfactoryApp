@@ -17,6 +17,6 @@ COPY . .
 EXPOSE 5173
 
 # Start the Vite development server
-CMD ["npm", "run", "build", "--", "--host"]
+CMD ["npm", "run", "dev", "--", "--host"]
 #CMD ["npm", "run", "build"]
 #CMD ["npx", "serve", "dist"]

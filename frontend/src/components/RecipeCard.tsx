@@ -1,23 +1,26 @@
-import {Box} from "@mui/material";
+import {Box, Checkbox} from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React, {useState} from "react";
+import {usePreferredRecipe} from "../hooks/usePreferredRecipe.ts";
 import {RecipeDetail} from "../types/Recipe.ts";
 
 interface RecipeCardProps extends RecipeDetail {
 	root_component: string;
+	single: boolean;
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({
 																								 root_component,
 																								 id,
 																								 display_name,
-																								 class_name,
 																								 ingredients,
 																								 products,
+																								 single=false,
 																							 }) => {
 	const [detailCard, setDetailCard] = useState(false);
+	const { isPreferred, setPreferred } = usePreferredRecipe(id);
 
 	// const handleClick = () => {
 	// 	setDetailCard(!detailCard);
@@ -30,6 +33,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 	const handleMouseLeave = () => {
 		setDetailCard(false);
 	}
+
+	const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		setPreferred(event.target.checked);
+	};
 
 	return (
 		<Box
@@ -51,9 +58,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 					display: "flex",
 					alignItems: "center",
 					paddingRight: "16px",
-					width: "60px", // Fixed width to match alignment
+					// width: "60px", // Fixed width to match alignment
 				}}
 			>
+				<Checkbox
+					checked={isPreferred || single}
+					onChange={handleCheckboxChange}
+					disabled={single}
+				/>
 				<img
 					width="48"
 					height="48"
@@ -68,7 +80,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 			{/* Main Content Grid */}
 			<Grid container spacing={2} alignItems="center">
 				{/* Root Component and Display Name */}
-				<Grid xs={3}> {/* Fixed size for consistent alignment */}
+				<Grid
+					// size={{ xs: 3 }}
+				> {/* Fixed size for consistent alignment */}
 					{root_component === display_name ? (
 						<Typography variant="body1">{root_component}</Typography>
 					) : (
@@ -85,7 +99,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 					<>
 						{/* Ingredients List */}
 						<Grid
-							xs={5} // Fixed width for ingredients
+							// size={{ xs: 5 }} // Fixed width for ingredients
 							sx={{
 								display: "flex",
 								gap: "8px",
@@ -114,7 +128,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
 						{/* Products List */}
 						<Grid
-							xs={4} // Fixed width for products
+							// size={{ xs: 4 }} // Fixed width for products
 							sx={{
 								display: "flex",
 								gap: "8px",

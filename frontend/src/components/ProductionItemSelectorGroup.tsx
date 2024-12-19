@@ -5,7 +5,8 @@ import {styled, useTheme} from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import React, {useEffect, useRef, useState} from 'react';
 import {FixedSizeList, ListChildComponentProps} from 'react-window';
-import {useAppContext} from '../store/AppContext';
+import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
+import {useProductionLineState, useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
 import {ItemDetail, ItemSummary} from "../types/Item.ts";
 import {ProductionTarget} from '../types/ProductionLine';
 
@@ -56,12 +57,13 @@ interface Props {
 }
 
 
-const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) => {
-	const {itemsComponentsDetail} = useAppContext();
+const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd, onEdit}) => {
+	const {itemsComponentsDetail} = useAppStaticData();
+	const {productionLines,activeTabId} = useProductionLineState();
+	const {updateProductionLine} = useProductionLineUpdate();
 	const [product, setProduct] = useState<ItemSummary | null>(target.product);
 	const [rate, setRate] = useState<number | null>(target.rate);
 	const rateInputRef = useRef<HTMLInputElement>(null);
-	const {activeTabId, productionLines, updateProductionLine} = useAppContext();
 
 	const DEBOUNCE_DELAY = 100;
 
@@ -75,7 +77,7 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) 
 		if (!isDummy && target.id) {
 			handleEditTarget(target.id, product, rate);
 		}
-	}, [product]);
+	}, [isDummy, product]);
 
 	useEffect(() => {
 		if (isDummy && product && rate !== null && onAdd && rate !== 0 && rate != 0) {
@@ -98,9 +100,18 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) 
 		}
 	};
 
+	// const handleRateBlur = () => {
+	// 	const parsedRate = rate !== '' && rate !== null ? parseFloat(rate) : null; // Convert string to float
+	// 	if (product !== null) {
+	// 		handleEditTarget(target.id, product, !isNaN(parsedRate) ? parsedRate : null);
+	// 	}
+	// };
+
 	const handleRateBlur = () => {
-		const parsedRate = rate !== '' && rate !== null ? parseFloat(rate) : null; // Convert string to float
-		handleEditTarget(target.id, product, !isNaN(parsedRate) ? parsedRate : null);
+		const parsedRate = rate !== '' && rate !== null ? parseFloat(rate) : null;
+		if (product !== null && (parsedRate !== target.rate || product !== target.product)) {
+			onEdit?.(target.id, product, !isNaN(parsedRate) ? parsedRate : null); // Notify parent of changes
+		}
 	};
 
 	// Function to update global state for the active production line's targets
@@ -112,8 +123,13 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd}) 
 	const handleEditTarget = (id: string, product: ItemSummary | null, rate: number | null) => {
 		const currentLine = productionLines.find((line) => line['id'] === activeTabId)
 		if (currentLine) {
+			const updatedTarget = {
+				id: `${activeTabId}.${product?.id | '0'}`,
+				product: product,
+				rate: rate,
+			}
 			const updatedTargets = currentLine['production_targets'].map(target =>
-				target.id === id ? {...target, product, rate} : target
+				target.id === id ? updatedTarget : target
 			);
 			updateGlobalLine(updatedTargets); // Update global state
 		} else {

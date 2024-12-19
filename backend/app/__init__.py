@@ -37,7 +37,7 @@ def create_app(config_class):
     migrate.init_app(app, db)
 
     logging.basicConfig()
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
     # Import all models explicitly
     from app.models.item_models import Item, AlienPowerFuel, Component, Consumable, NuclearFuel, PowerShard, RawResource

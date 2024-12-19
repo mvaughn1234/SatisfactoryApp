@@ -1,7 +1,6 @@
 // src/types/ProductionLine.ts
-
 import {ItemSummary} from './Item';
-import {RecipeSummary} from './Recipe';
+import {RecipeDetail, RecipeSummary} from './Recipe';
 
 // Interface for a production target (e.g., 100 iron plates/min)
 export interface ProductionTarget {
@@ -33,4 +32,21 @@ export interface ProductionLine {
 	input_customizations: InputCustomization[]; // Custom input limitations
 	recipe_customizations: RecipeCustomization[]; // Learned/excluded/required recipes
 	// lastUpdated: Date;                    // Last updated timestamp for tracking changes
+}
+
+export interface OptimizationResult {
+	production_line: {
+		[recipe_id: number]: {
+			recipe_data: RecipeDetail;
+			scale: number;
+		};
+	},
+	raw_resource_usage: [{
+		item_id: number,
+		total_quantity: number,
+	}],
+	target_output: [{
+		item_id: number,
+		amount: number,
+	}]
 }

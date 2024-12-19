@@ -52,15 +52,16 @@ def save_user_config():
         # Catch any unexpected errors and return a generic error response
         return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
 
-@users_blueprint.route('/config/lines/load', methods=['POST'])
+@users_blueprint.route('/config/lines/load', methods=['GET'])
 def get_user_line():
-    # Extract the JSON body
-    data = request.json
-    if not data or 'user_key' not in data:
-        return jsonify({'error': 'user_key is required in the request body'}), 400
+    # Extract the Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Authorization header with Bearer token is required'}), 400
 
-    # Extract user_key
-    user_key = data['user_key']
+    # Extract user_key from the Authorization header
+    user_key = auth_header.split('Bearer ')[1]
+
     try:
         # Load user configuration
         user_lines = ConfigurationService.load_production_lines(user_key)
@@ -73,28 +74,25 @@ def get_user_line():
 
 @users_blueprint.route('/config/lines/update', methods=['POST'])
 def save_user_line():
+    # Extract the Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Authorization header with Bearer token is required'}), 400
+
+    # Extract user_key from the Authorization header
+    user_key = auth_header.split('Bearer ')[1]
+
     # Extract the JSON body
     data = request.json
+    if not data or 'id' not in data or not 'updates' in data:
+        return jsonify({'error': 'id and updates are required in the request body'}), 400
 
-    if not data:
-        return jsonify({'error': 'Request body is empty. Must include user_key and config'}), 400
-
-    missing_fields = []
-    if 'user_key' not in data:
-        missing_fields.append('user_key')
-    if 'line' not in data:
-        missing_fields.append('line')
-
-    if missing_fields:
-        return jsonify({'error': f"Missing required fields: {', '.join(missing_fields)}"}), 400
-
-    # Extract user_key
-    user_key = data['user_key']
-    line = data['line']
+    line = data['id']
+    updates = data['updates']
 
     try:
         # Load user configuration
-        ConfigurationService.save_production_line(user_key, line)
+        ConfigurationService.save_production_line(user_key, line, updates)
 
         # Return the user configuration as JSON
         return jsonify({"message": "Configuration saved successfully"}), 200

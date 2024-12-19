@@ -17,7 +17,9 @@ const App: React.FC<AppProps> = ({disableCustomTheme = false}) => {
 				<CssBaseline/>
 				<Box
 					component="main"
-					sx={(theme) => ({
+					sx={
+					// (theme) => (
+							{
 						display: 'flex',
 						flexDirection: 'column',
 						height: '100vh',
@@ -25,7 +27,9 @@ const App: React.FC<AppProps> = ({disableCustomTheme = false}) => {
 						// 	? `rgba(${theme.vars.palette.background.defaultChannel} / 1)`
 						// 	: alpha(theme.palette.background.default, 1),
 						overflow: 'hidden',
-					})}
+					}
+					// )
+				}
 				>
 					<Router>
 						<MainLayout>

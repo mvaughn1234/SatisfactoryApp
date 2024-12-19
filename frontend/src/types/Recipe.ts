@@ -24,10 +24,17 @@ export interface RecipeDetail extends RecipeSummary {
 export interface RecipeGroupDetail {
 	standard_product_display_name: string;
 	alternate?: RecipeDetail[];
-	standard: RecipeDetail;
+	standard?: RecipeDetail;
+}
+
+export interface ActiveRecipeGroup {
+	selectedRecipe: RecipeDetail; // The recipe currently selected by the optimizer
+	otherRecipes: RecipeDetail[]; // The other recipes in the same group
+	recipeGroupName: string; // Name of the group (e.g., "Iron Ingot")
 }
 
 export interface RecipeConfig {
 	learned: boolean;
 	excluded: boolean;
+	preferred: number;
 }

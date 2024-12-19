@@ -60,7 +60,7 @@ export const fetchProductionLines = async () => {
 	return response.json();
 }
 
-export const updateUserProductionLine = async (id: string, updates: Partial<ProductionLine>) => {
+export const updateUserProductionLine = async (id: string, updates: Partial<ProductionLine> | null) => {
 	const userKey = getUserKey();
 
 	const response = await fetch(`${USER_CONFIG_API_URL}/config/lines/update`, {

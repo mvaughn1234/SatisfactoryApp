@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {
 	fetchProductionLines,
 	fetchUserRecipeConfig,
@@ -10,24 +10,34 @@ import {RecipeConfigs} from "../types/UserConfigs.ts";
 
 export const useFetchUserRecipeConfig = () => {
 	const [data, setData] = useState<RecipeConfigs>([]);
-	const [loading, setLoading] = useState<boolean>(true);
+	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
 
 	useEffect(() => {
-		(async () => {
+		const fetchData = async () => {
 			try {
-				const configs = await fetchUserRecipeConfig();
-				setData(configs);
+				const result = await fetchUserRecipeConfig();
+				setData(result);
 			} catch (err) {
 				setError(err as Error);
 			} finally {
 				setLoading(false);
 			}
-		})();
-	}, []);
+		};
 
-	return {fetchedRecipeConfigs: {data, loading, error}};
+		fetchData();
+	}, []); // Dependency array ensures this runs only once
+
+	return useMemo(
+		() => ({fetchedRecipeConfigs: {
+			loading,
+			data,
+			error,
+		}}),
+		[loading, data, error]
+	);
 };
+
 
 export const useUpdateUserRecipeConfig = (recipeConfigUpdates: RecipeConfigs) => {
 	const [data, setData] = useState([]);
@@ -56,23 +66,31 @@ export const useFetchProductionLines = () => {
 	const [error, setError] = useState<Error | null>(null);
 
 	useEffect(() => {
-		(async () => {
+		const fetchData = async () => {
 			try {
-				const configs = await fetchProductionLines();
-				setData(configs);
+				const result = await fetchProductionLines();
+				setData(result);
 			} catch (err) {
 				setError(err as Error);
 			} finally {
 				setLoading(false);
 			}
-		})();
-	}, []);
+		};
 
-	return {fetchedProductionLines: {data, loading, error}};
+		fetchData();
+	}, []); // Dependency array ensures this runs only once
 
+	return useMemo(
+		() => ({fetchedProductionLines: {
+				loading,
+				data,
+				error,
+			}}),
+		[loading, data, error]
+	);
 }
 
-export const useUpdateUserProductionLine = (id: string, updates: Partial<ProductionLine>) => {
+export const useUpdateUserProductionLine = (id: string, updates: Partial<ProductionLine> | null) => {
 	const [data, setData] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);

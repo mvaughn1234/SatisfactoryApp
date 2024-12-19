@@ -23,13 +23,32 @@ def get_component_recipes_grouped_details():
     recipes = RecipeService.get_component_recipes_grouped_details()
     return jsonify(recipes)
 
-@recipes_blueprint.route('/detail/<int:recipe_id>', methods=['GET'])
-def get_recipe_by_id_detail(recipe_id):
-    recipe = RecipeService.get_recipe_by_id_detail(recipe_id)
+from flask import request, jsonify
+
+# Call as /api/recipes/detail?recipe_id_data=123,124,125,...
+# or as   /api/recipes/detail?recipe_id_data=123
+@recipes_blueprint.route('/detail', methods=['GET'])
+def get_recipe_by_id_detail():
+    # Get the 'recipe_id_data' query parameter
+    recipe_id_data = request.args.get('recipe_id_data')
+
+    if not recipe_id_data:
+        return jsonify({'message': 'recipe_id_data parameter is required'}), 400
+
+    # Parse the parameter as a list
+    if ',' in recipe_id_data:
+        recipe_id_data = [int(id.strip()) for id in recipe_id_data.split(',')]
+    else:
+        recipe_id_data = [int(recipe_id_data)]
+
+    # Fetch recipe(s) using the service
+    recipe = RecipeService.get_recipe_by_id_detail(recipe_id_data)
+
     if recipe:
         return jsonify(recipe)
     else:
         return jsonify({'message': 'Recipe not found'}), 404
+
 
 @recipes_blueprint.route('/summary/<int:recipe_id>', methods=['GET'])
 def get_recipe_by_id_summary(recipe_id):

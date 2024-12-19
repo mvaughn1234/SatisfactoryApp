@@ -4,13 +4,12 @@ import {styled} from '@mui/material/styles';
 import React, {useCallback, useState} from 'react';
 import {useRecipeConfigUpdate} from '../store/RecipeConfigStore.tsx';
 import {RecipeDetail} from "../types/Recipe.ts";
-import {RecipeConfigData} from "../types/UserConfigs.ts";
 
 interface RecipeListItemProps {
 	recipe: RecipeDetail;
 	conf_known: boolean;
 	conf_excluded: boolean;
-	conf_preferred: boolean;
+	conf_preferred: number;
 }
 
 const Item = styled(Paper)(({theme}) => ({
@@ -26,10 +25,10 @@ const Item = styled(Paper)(({theme}) => ({
 
 
 const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf_excluded, conf_preferred}) => {
-	const {updateRecipesKnown, updateRecipesExcluded} = useRecipeConfigUpdate();
+	const {updateRecipesKnown, updateRecipesExcluded, updateRecipesPreferred} = useRecipeConfigUpdate();
 	const [known, setKnown] = useState<boolean>(conf_known);
 	const [excluded, setExcluded] = useState<boolean>(conf_excluded);
-	const [preferred, setPreferred] = useState<boolean>(conf_preferred);
+	// const [preferred, setPreferred] = useState<number>(conf_preferred);
 
 	const handleLearnRecipe = useCallback(() => {
 		updateRecipesKnown(recipe.id);
@@ -40,6 +39,11 @@ const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf
 		updateRecipesExcluded(recipe.id);
 		setExcluded((prev) => !prev);
 	}, [updateRecipesExcluded, recipe.id]);
+
+	const handlePreferredRecipe = useCallback(() => {
+		updateRecipesPreferred(recipe.id);
+		// setPreferred((prev) => !prev);
+	}, [updateRecipesPreferred, recipe.id]);
 
 	return (
 		<ListItem disablePadding>

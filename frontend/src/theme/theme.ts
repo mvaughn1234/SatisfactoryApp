@@ -1,17 +1,22 @@
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import {createTheme, type ThemeOptions} from '@mui/material/styles';
+import {colorSchemes, shadows, shape, typography} from "./customThemePrimitives.ts";
 
-const theme = createTheme({
+
+const theme = (themeComponents?: ThemeOptions['components']) => createTheme({
+	colorSchemes, // Recently added in v6 for building light & dark mode app, see https://mui.com/material-ui/customization/palette/#color-schemes
+	typography,
+	shadows,
+	shape,
 	palette: {
 		primary: {
-			main: '#1976d2',
+			main: '#FA9549',
 		},
 		secondary: {
-			main: '#dc004e',
+			main: '#5F668C',
 		},
 	},
-	typography: {
-		fontFamily: 'Roboto, Arial, sans-serif',
-		h1: { fontSize: '2rem' },
+	components: {
+		...themeComponents,
 	},
 });
 

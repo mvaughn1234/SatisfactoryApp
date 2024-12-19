@@ -1,11 +1,21 @@
-import React, { createContext, useCallback, useContext, useEffect, useState, useMemo } from 'react';
-import {useFetchUserRecipeConfig, useUpdateUserRecipeConfig} from "../hooks/userHooks.ts";
-import {updateUserProductionLine, updateUserRecipeConfig} from "../services/userConfigService.ts";
-import {RecipeConfigs, RecipeConfigState, RecipeConfigUpdate} from "../types/UserConfigs.ts";
+import React, {createContext, useCallback, useContext, useEffect, useState, useMemo, ReactNode} from 'react';
+import {useFetchUserRecipeConfig} from "../hooks/userHooks.ts";
+import {updateUserRecipeConfig} from "../services/userConfigService.ts";
+import {RecipeConfigState, RecipeConfigUpdate} from "../types/ContextStoreInterfaces.ts";
+import {RecipeConfigs} from "../types/UserConfigs.ts";
 
 // Create state and update contexts
-const RecipeConfigStateContext = createContext(null);
-const RecipeConfigUpdateContext = createContext(null);
+const RecipeConfigStateContext = createContext<RecipeConfigState>({
+	recipeIds: [],
+	loadingRecipeConfigs: false,
+	recipeConfigs: {},
+});
+
+const RecipeConfigUpdateContext = createContext<RecipeConfigUpdate>({
+	updateRecipesKnown : () => {},
+	updateRecipesExcluded : () => {},
+	updateRecipesPreferred : () => {},
+});
 
 // Custom hook to access only the recipe state
 export const useRecipeConfigState = () => {
@@ -21,8 +31,11 @@ export const useRecipeConfigUpdate = () => {
 	return context as RecipeConfigUpdate;
 };
 
+interface RecipeConfigProviderProps {
+	children: ReactNode; // Explicitly define the type for children
+}
 
-export const RecipeConfigProvider: React.FC = ({ children }) => {
+export const RecipeConfigProvider: React.FC<RecipeConfigProviderProps> = ({ children }) => {
 	const [recipeIds, setRecipeIds] = useState<number[]>([]);
 	const [loadingRecipeConfigs, setLoadingRecipeConfigs] = useState<boolean>(true);
 	const [recipeConfigs, setRecipeConfigs] = useState<RecipeConfigs>({});
@@ -39,63 +52,50 @@ export const RecipeConfigProvider: React.FC = ({ children }) => {
 		if (fetchedRecipeConfigs.error) {
 			console.error('Error fetching recipe configs:', fetchedRecipeConfigs.error);
 		}
-
 	}, [fetchedRecipeConfigs.loading, fetchedRecipeConfigs.data, fetchedRecipeConfigs.error]);
 
 	// Update local state and stage changes
-	const updateRecipesKnown = useCallback((id: number) => {
-		const newValue = !recipeConfigs[id]?.known;
-		setRecipeConfigs((prevConfigs) => ({
-			...prevConfigs,
-			[id]: {
-				...prevConfigs[id],
-				known: newValue,
-			},
-		}));
-		(async () => {
-			try {
-				await updateUserRecipeConfig({[id]: {'known': newValue}});
-			} catch (err) {
-				console.error("Error syncing updates to database:", err);
-			}
-		})();
-	}, [recipeConfigs]);
+	const toggleRecipeProperty = useCallback(
+		(id: number, property: 'known' | 'excluded' | 'preferred', preferred_id?: number | null) => {
+			setRecipeConfigs((prevConfigs) => {
+				const newValue = (property==='preferred') ? preferred_id || id : !prevConfigs[id]?.[property]; // Calculate new value based on the latest state
+				const updatedConfigs = {
+					...prevConfigs,
+					[id]: {
+						...prevConfigs[id],
+						[property]: newValue,
+					},
+				};
 
-	const updateRecipesExcluded = useCallback((id: number) => {
-		const newValue = !recipeConfigs[id]?.excluded;
-		setRecipeConfigs((prevConfigs) => ({
-			...prevConfigs,
-			[id]: {
-				...prevConfigs[id],
-				excluded: newValue,
-			},
-		}));
-		(async () => {
-			try {
-				await updateUserRecipeConfig({[id]: {'excluded': newValue}});
-			} catch (err) {
-				console.error("Error syncing updates to database:", err);
-			}
-		})();
-	}, [recipeConfigs]);
+				// Trigger backend update with the new value
+				(async () => {
+					try {
+						await updateUserRecipeConfig({ [id]: { [property]: newValue } });
+					} catch (err) {
+						console.error(`Error updating ${property} for recipe ${id}:`, err);
 
-	const updateRecipesPreferred = useCallback((id: number) => {
-		const newValue = !recipeConfigs[id]?.preferred;
-		setRecipeConfigs((prevConfigs) => ({
-			...prevConfigs,
-			[id]: {
-				...prevConfigs[id],
-				preferred: newValue,
-			},
-		}));
-		(async () => {
-			try {
-				await updateUserRecipeConfig({[id]: {'preferred': newValue}});
-			} catch (err) {
-				console.error("Error syncing updates to database:", err);
-			}
-		})();
-	}, [recipeConfigs]);
+						// Rollback state in case of an error
+						setRecipeConfigs((rollbackConfigs) => ({
+							...rollbackConfigs,
+							[id]: {
+								...rollbackConfigs[id],
+								[property]: !newValue, // Revert the value
+							},
+						}));
+					}
+				})();
+
+				return updatedConfigs; // Return updated state for `setRecipeConfigs`
+			});
+		},
+		[]
+	);
+
+	const memoizedUpdateFunctions = useMemo(() => ({
+		updateRecipesKnown: (id: number) => toggleRecipeProperty(id, 'known'),
+		updateRecipesExcluded: (id: number) => toggleRecipeProperty(id, 'excluded'),
+		updateRecipesPreferred: (id: number, preferred_id: number) => toggleRecipeProperty(id, 'preferred', preferred_id),
+	}), [toggleRecipeProperty]);
 
 	// Memoize context values
 	const memoizedState = useMemo(() => ({
@@ -103,13 +103,6 @@ export const RecipeConfigProvider: React.FC = ({ children }) => {
 		loadingRecipeConfigs,
 		recipeConfigs,
 	}), [recipeIds, loadingRecipeConfigs, recipeConfigs]);
-
-	const memoizedUpdateFunctions = useMemo(() => ({
-		updateRecipesKnown,
-		updateRecipesExcluded,
-		updateRecipesPreferred,
-		// syncUpdatesToDatabase, // Expose sync function for drawer close event
-	}), [updateRecipesKnown, updateRecipesExcluded, updateRecipesPreferred]);
 
 	return (
 		<RecipeConfigStateContext.Provider value={memoizedState}>

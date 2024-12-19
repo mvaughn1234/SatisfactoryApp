@@ -57,3 +57,22 @@ class ServiceUtils:
 
     def recipe_summary_from_full(self, object_dict):
         return self.summary_from_full(object_dict, 'recipe')
+
+    @staticmethod
+    def is_valid_line_id_frontend(value):
+        """
+        Validate if a given value is a string representing a number.
+
+        Parameters:
+            value: Any type - The value to validate.
+
+        Returns:
+            bool: True if the value is a string representing a number, False otherwise.
+        """
+        if not isinstance(value, str):
+            return False
+        try:
+            float(value)  # Try to convert the string to a float
+            return True
+        except ValueError:
+            return False

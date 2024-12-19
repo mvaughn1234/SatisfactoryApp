@@ -1,6 +1,7 @@
 from app.models import User, UserRecipeConfig, UserProductionLine, ProductionLineTarget
 from app.services.item_service import ItemService
 from app.services.recipe_service import RecipeService
+from app.services.service_utils import ServiceUtils
 from app.utils import get_session
 
 
@@ -21,6 +22,10 @@ class ConfigurationService:
 
                 user = session.query(User).filter(User.user_key == user_key).first()
 
+            user_config = session.query(UserRecipeConfig, User).join(User, UserRecipeConfig.user_id == User.id).filter(
+                User.user_key == user_key).all()
+
+            if user_config is None or len(user_config) == 0:
                 # Pull all the component recipes to get ready to populate the default config
                 component_recipes = RecipeService.get_component_recipes_details()
 
@@ -31,14 +36,15 @@ class ConfigurationService:
                         recipe_id=component_recipe['id'],
                         known=False if component_recipe['display_name'].startswith('Alternate') else True,
                         excluded=False,
-                        preferred=False,
+                        preferred=component_recipe['id'],
                     )
                     session.add(recipe_config)
 
                 session.commit()
 
-        user_config = session.query(UserRecipeConfig, User).join(User, UserRecipeConfig.user_id == User.id).filter(
-            User.user_key == user_key).all()
+                user_config = session.query(UserRecipeConfig, User).join(User, UserRecipeConfig.user_id == User.id).filter(
+                    User.user_key == user_key).all()
+
         user_config_json = {}
         for recipe_config, _ in user_config:
             user_config_json[recipe_config.recipe_id] = {
@@ -96,7 +102,7 @@ class ConfigurationService:
             return {"message": "Recipe configurations updated successfully"}, 200
 
     @staticmethod
-    def load_production_lines(user_key):
+    def load_production_lines(user_key, line=None):
         with get_session() as session:
             user = session.query(User).filter(User.user_key == user_key).first()
             if user is None:
@@ -104,90 +110,158 @@ class ConfigurationService:
                 new_user = User(user_key=user_key)
                 session.add(new_user)
                 session.commit()
+                user = session.query(User).filter(User.user_key == user_key).first()
 
-                return []
+            if line is not None:
+                if ServiceUtils.is_valid_line_id_frontend(line):
+                    user_lines = (
+                        session.query(UserProductionLine)
+                        .join(User, UserProductionLine.user_id == User.id)
+                        .filter(User.user_key == user_key)
+                        .filter(UserProductionLine.line_id_frontend == line)
+                    ).all()
+                else:
+                    raise Exception("Invalid production line, should be string of the form \d+.")
 
-            user_lines = (
-                session.query(UserProductionLine, ProductionLineTarget)
+            else:
+                user_lines = (
+                    session.query(UserProductionLine)
+                    .join(User, UserProductionLine.user_id == User.id)
+                    .filter(User.user_key == user_key)
+                ).all()
+
+            if user_lines is None or len(user_lines) == 0:
+                default_line = UserProductionLine(
+                    line_id_frontend='0',
+                    name='Default Production Line',
+                    user_id=user.id
+                )
+
+                session.add(default_line)
+                session.commit()
+
+                return [{
+                    'id': '0',
+                    'name': 'Default Production Line',
+                    'production_targets': [],
+                    'input_customizations': [],
+                    'output_customizations': [],
+                }]
+
+            production_lines = {}
+
+            for user_line in user_lines:
+                new_line = {
+                    'id': user_line.line_id_frontend,
+                    'name': user_line.name,
+                    'production_targets': [],
+                    'input_customizations': [],
+                    'output_customizations': [],
+                }
+
+                production_lines[user_line.id] = new_line
+
+
+            user_targets_by_line = (
+                session.query(ProductionLineTarget)
+                .join(UserProductionLine, UserProductionLine.id == ProductionLineTarget.line_id)
                 .join(User, UserProductionLine.user_id == User.id)
-                .join(ProductionLineTarget, ProductionLineTarget.line_id == UserProductionLine.id)
+                .filter(User.user_key == user_key)  # Filter on user_key applied after User join
             ).all()
 
-            item_ids = [target.item_id for _, target in user_lines]
-            item_summaries = ItemService.get_item_by_id_summary(item_ids)
-            production_lines = {}
-            for production_line, target in user_lines:
-                if production_line.id in production_lines.keys():
-                    production_target = {
-                        "id": target.id,
-                        "product": ItemService.get_item_by_id_summary(target.item_id),
-                        "rate": target.rate
-                    }
-                    production_lines[production_line.id]["production_targets"].append(production_target)
-                else:
-                    production_lines[production_line.id] = {
-                        "id": production_line.line_id_frontend,
-                        "name": production_line.name,
-                        "production_targets": [{
-                            "id": target.id,
+            if user_targets_by_line is None or len(user_targets_by_line) == 0:
+                return list(production_lines.values())
+
+            item_ids = [target.item_id for target in user_targets_by_line]
+
+            for target in user_targets_by_line:
+                if target.line_id in production_lines.keys():
+                    new_target = {
+                            "id": target.target_id_frontend,
                             "product": ItemService.get_item_by_id_summary(target.item_id),
                             "rate": target.rate
-                        }],
-                        "input_customizations": [],
-                        "recipe_customizations": [],
-                    }
-            return production_lines
+                        }
+                    production_lines[target.line_id]['production_targets'].append(new_target)
+
+
+
+            return list(production_lines.values())
 
     @staticmethod
-    def save_production_line(user_key, line):
+    def save_production_line(user_key, line, updates):
         # Save the configuration in the database
-        with (get_session() as session):
+        with get_session() as session:
             user = session.query(User).filter(User.user_key == user_key).first()
 
             if user is None:
                 raise UserNotFoundError("User with the provided key was not found.")
 
-            if not line or not 'production_targets' in line:
+            if not line or not updates:
                 raise Exception("Production line cannot be empty.")
 
-            production_line = session.query(UserProductionLine).filter(
-                UserProductionLine.line_id_frontend == line['id']).first()
+            production_line = session.query(UserProductionLine).join(User,User.id == UserProductionLine.user_id).filter(
+                UserProductionLine.line_id_frontend == line).filter(User.user_key == user_key).first()
 
             if production_line is None:
-                new_line = UserProductionLine(
-                    user_id=user.id,
-                    line_id_frontend=line['id'],
-                    name=line['name']
-                )
-                session.add(new_line)
-                session.commit()
-                production_line = session.query(UserProductionLine).filter(
-                    UserProductionLine.line_id_frontend == line['id']).first()
+                if 'name' not in updates:
+                    return {"message": {"error": "couldn't find name in updates", "updates": updates}}
+                else:
+                    new_line = UserProductionLine(
+                        line_id_frontend=line,
+                        name=updates['name'],  # Access `name` from `updates`
+                        user_id=user.id
+                    )
 
-            # Step 2: Extract recipe_ids from the config list
-            target_ids = {target['product']['id']: target['rate'] for target in line['production_targets']
-                          if 'product' in target and 'rate' in target and 'id' in target['product']}
+                    session.add(new_line)
+                    session.commit()
 
-            # Step 3: Retrieve all relevant UserProductionLine rows in one query
+                    production_line = session.query(UserProductionLine).filter(
+                        UserProductionLine.line_id_frontend == line).first()
+
+            # Extract targets from the updates payload
+            fe_targets_by_target_id_frontend = {
+                target['id']: target for target in updates['production_targets']
+                if 'id' in target and 'rate' in target
+            }
+
+            # Retrieve all relevant UserProductionLine rows in one query
             production_targets = (
                 session.query(UserProductionLine, ProductionLineTarget)
                 .join(User, UserProductionLine.user_id == User.id)
-                .filter(UserProductionLine.line_id_frontend == line['id'])
                 .join(ProductionLineTarget, ProductionLineTarget.line_id == UserProductionLine.id)
+                .filter(User.user_key == user_key)  # Filter by user_key
+                .filter(UserProductionLine.line_id_frontend == line)  # Filter by line_id_frontend
             ).all()
 
-            targets = {target.item_id: target for _, target in production_targets}
+            # Map backend target rows by `target_id_frontend`
+            be_target_row_models_by_target_id_frontend = {
+                target.target_id_frontend: target for _, target in production_targets
+            }
 
-            for target_id in target_ids.keys():
-                if target_id in targets:
-                    setattr(targets[target_id], 'rate', target_ids[target_id])
+            # Update or add rows
+            for target_id_frontend, fe_target in fe_targets_by_target_id_frontend.items():
+                product = fe_target.get('product')
+                item_id = product.get('id') if product else None  # Handle null product
+
+                if target_id_frontend in be_target_row_models_by_target_id_frontend:
+                    # Update existing row
+                    be_target = be_target_row_models_by_target_id_frontend[target_id_frontend]
+                    be_target.rate = fe_target['rate']
+                    be_target.item_id = item_id
                 else:
+                    # Add a new row
                     new_target = ProductionLineTarget(
                         line_id=production_line.id,
-                        item_id=target_id,
-                        rate=target_ids[target_id],
+                        target_id_frontend=target_id_frontend,
+                        item_id=item_id,
+                        rate=fe_target['rate'],
                     )
                     session.add(new_target)
+
+            # Delete rows that are no longer in updates
+            for target_id_frontend in be_target_row_models_by_target_id_frontend.keys():
+                if target_id_frontend not in fe_targets_by_target_id_frontend:
+                    session.delete(be_target_row_models_by_target_id_frontend[target_id_frontend])
 
             session.commit()
             return {"message": "Production line updated successfully"}, 200

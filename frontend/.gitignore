@@ -27,5 +27,4 @@ dist-ssr
 /src/stories/
 /.storybook/
 /.fastRequest/
-/src/components/RecipeCard.stories.tsx
 /src/components/TestDrawer.tsx
