@@ -1,22 +1,13 @@
-# Use the official Node.js image
-FROM node:20
-
-# Set the working directory in the container
+# Satisfactory_App/frontend/Dockerfile
+FROM node:20 AS builder
 WORKDIR /app
-
-# Copy package.json and package-lock.json
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
-
-# Copy the rest of the application code
 COPY . .
+RUN npm run build
 
-# Expose the port Vite uses for development
-EXPOSE 5173
-
-# Start the Vite development server
-CMD ["npm", "run", "dev", "--", "--host"]
-#CMD ["npm", "run", "build"]
-#CMD ["npx", "serve", "dist"]
+FROM nginx:latest
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

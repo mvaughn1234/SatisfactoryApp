@@ -1,3 +1,4 @@
+# Satisfactory_App/backend/Dockerfile
 # Use an official Python runtime as a parent image
 FROM python:3.12
 
@@ -25,4 +26,5 @@ COPY . .
 EXPOSE 5000
 
 # Run the application
-CMD ["bash", "-c", "flask db upgrade && flask run --host=0.0.0.0 --debug"]
+CMD ["bash", "-c", "flask db upgrade && flask run --host=0.0.0.0"]
+#CMD ["bash", "-c", "flask db upgrade && flask run --host=0.0.0.0 --debug"]

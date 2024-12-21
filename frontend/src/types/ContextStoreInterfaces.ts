@@ -7,9 +7,9 @@ export interface ProductionLineState {
 	productionLines: ProductionLine[];
 	activeTabId: string;
 	loadingProductionLines: boolean;
-	optimizedLineData?: OptimizationResult;
+	optimizedLineData: OptimizationResult | undefined;
 	loadingOptimization: boolean;
-	calculationError?: string;
+	calculationError: string | null; // match your code
 }
 
 export interface ProductionLineUpdate {

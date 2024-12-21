@@ -32,7 +32,7 @@ export const ProductionLineProvider: React.FC<ProductionLineProviderProps> = ({c
 	const [productionLines, setProductionLines] = useState<ProductionLine[]>([]);
 	const [activeTabId, setActiveTabId] = useState<string>('0'); // Default to first tab
 	const [loadingProductionLines, setLoadingProductionLines] = useState<boolean>(true);
-	const [optimizedLineData, setOptimizedLineData] = useState<OptimizationResult | null>(null); // Store optimization results
+	const [optimizedLineData, setOptimizedLineData] = useState<OptimizationResult | undefined>(undefined);
 	const [calculationError, setCalculationError] = useState<string | null>(null); // Track fetch errors
 	const [loadingOptimization, setLoadingOptimization] = useState<boolean>(true);
 	const [queuedCalculation, setQueuedCalculation] = useState<boolean>(false);
@@ -49,15 +49,18 @@ export const ProductionLineProvider: React.FC<ProductionLineProviderProps> = ({c
 					console.log('found active line')
 					const results = await fetchLineOptimizationCalculation(activeTabId);
 					console.log('setting results')
-					setOptimizedLineData(results);
+					setOptimizedLineData(results ?? undefined);
 					setCalculationError(null); // Clear any previous errors
 					setLoadingOptimization(false);
 				}
-			} catch (error: Error) {
-				console.log('optimization calculation error')
-				console.error('Error fetching optimization data:', error);
-				setCalculationError(error.message || 'Unknown error');
-				// setLoadingOptimization(false);
+			} catch (error: unknown) {
+				if (error instanceof Error) {
+					console.error('Error fetching optimization data:', error);
+					setCalculationError(error.message || 'Unknown error');
+				} else {
+					console.error('Unknown error:', error);
+					setCalculationError('Unknown error');
+				}
 			}
 		}, 300), // Debounce delay (300ms)
 		[]

@@ -4,11 +4,13 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React, {useState} from "react";
 import {usePreferredRecipe} from "../hooks/usePreferredRecipe.ts";
-import {RecipeDetail} from "../types/Recipe.ts";
+import {RecipeSummary, RecipeItem} from "../types/Recipe.ts";
 
-interface RecipeCardProps extends RecipeDetail {
+interface RecipeCardProps extends RecipeSummary {
 	root_component: string;
-	single: boolean;
+	ingredients?: RecipeItem[];
+	products?: RecipeItem[];
+	single?: boolean;
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({
@@ -17,11 +19,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 																								 display_name,
 																								 ingredients,
 																								 products,
-																								 single=false,
+																								 single = false,
+																								 manufactoring_duration = 0,
 																							 }) => {
 	const [detailCard, setDetailCard] = useState(false);
-	const { isPreferred, setPreferred } = usePreferredRecipe(id);
-
+	const {isPreferred, setPreferred} = usePreferredRecipe(id);
+	console.log("eating useless variable to remove error: ", manufactoring_duration)
 	// const handleClick = () => {
 	// 	setDetailCard(!detailCard);
 	// }
@@ -69,10 +72,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 				<img
 					width="48"
 					height="48"
-					src={`src/assets/images/items/${root_component.replaceAll(
-						" ",
-						"-"
-					).toLowerCase()}_64.png`}
+					src={`src/assets/images/items/${root_component.split(" ").join("-").toLowerCase()}_64.png`}
 					alt={root_component}
 				/>
 			</Box>
@@ -107,7 +107,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 								flexWrap: "wrap", // Ensures wrapping if necessary
 							}}
 						>
-							{ingredients?.length > 0 ?
+							{(ingredients && ingredients?.length > 0) ?
 								<Box sx={{display: "flex", backgroundColor: 'grey.100', borderRadius: 1}}>
 									{ingredients?.map((ingredient) => (
 										<Box key={ingredient.id} sx={{display: "flex", p: 1}}>
@@ -115,7 +115,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 												width="32"
 												height="32"
 												src={`src/assets/images/items/${ingredient.display_name
-													.replaceAll(" ", "-")
+													.split(" ").join("-")
 													.toLowerCase()}_64.png`}
 												alt={ingredient.display_name}
 											/>
@@ -136,7 +136,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 								justifyContent: "flex-end", // Align products to the right
 							}}
 						>
-							{products?.filter((product) => product.display_name != root_component).length > 0 ?
+							{products && products?.filter((product) => product.display_name != root_component).length > 0 ?
 								<Box
 									sx={{
 										p: 1,
@@ -150,7 +150,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 												width="32"
 												height="32"
 												src={`src/assets/images/items/${product.display_name
-													.replaceAll(" ", "-")
+													.split(" ").join("-")
 													.toLowerCase()}_64.png`}
 												alt={product.display_name}
 											/>

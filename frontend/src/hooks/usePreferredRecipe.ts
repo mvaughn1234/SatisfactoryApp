@@ -3,15 +3,16 @@ import {useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
 import {useRecipeConfigState, useRecipeConfigUpdate} from "../store/RecipeConfigStore.tsx";
 
 export const usePreferredRecipe = (recipe_id: number) => {
-	const { loading, recipesGroupedDetail } = useAppStaticData();
-	const { updateRecipesPreferred } = useRecipeConfigUpdate();
-	const { loadingRecipeConfigs, recipeConfigs } = useRecipeConfigState();
-	const { queueCalculation } = useProductionLineUpdate()
+	const {loading, recipesGroupedDetail} = useAppStaticData();
+	const {updateRecipesPreferred} = useRecipeConfigUpdate();
+	const {loadingRecipeConfigs, recipeConfigs} = useRecipeConfigState();
+	const {queueCalculation} = useProductionLineUpdate()
 
 	if (loading || loadingRecipeConfigs) {
 		return {
 			isPreferred: false,
-			setPreferred: () => {}
+			setPreferred: () => {
+			}
 		}
 	}
 
@@ -27,7 +28,8 @@ export const usePreferredRecipe = (recipe_id: number) => {
 		console.warn(`No recipe group found for recipe ID: ${recipe_id}`);
 		return {
 			isPreferred: false,
-			setPreferred: () => {}
+			setPreferred: () => {
+			}
 		};
 	}
 
@@ -39,7 +41,11 @@ export const usePreferredRecipe = (recipe_id: number) => {
 	// If there's a group-level preferred property, you might look that up instead.
 	const currentPreferredId = recipeConfigs[recipe_id]?.preferred || null;
 	const groupHasPreference = allRecipes.reduce((count, recipe) => {
-		return count + (recipeConfigs[recipe?.id]?.preferred === recipe?.id ? 1 : 0);
+		if (recipe) {
+			return count + (recipeConfigs[recipe.id]?.preferred === recipe?.id ? 1 : 0);
+		} else {
+			return count;
+		}
 	}, 0);
 	const isPreferred = currentPreferredId === recipe_id && (groupHasPreference === 1);
 
@@ -48,11 +54,11 @@ export const usePreferredRecipe = (recipe_id: number) => {
 		if (preferred) {
 			console.log('allRecipes: ', allRecipes)
 			console.log('recipeGroup: ', recipeGroup)
-			allRecipes.forEach((r) => updateRecipesPreferred(r.id, recipe_id));
+			allRecipes.forEach((r) => r && updateRecipesPreferred(r.id, recipe_id));
 		} else {
 			// If not preferred, you might reset the preferred state, or set it to null
 			// This depends on how your store expects to handle "no preferred recipe"
-			allRecipes.forEach((r) => updateRecipesPreferred(r.id, r.id));
+			allRecipes.forEach((r) => r && updateRecipesPreferred(r.id, r.id));
 		}
 		queueCalculation()
 	};

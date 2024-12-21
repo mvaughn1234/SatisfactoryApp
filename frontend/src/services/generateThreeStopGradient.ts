@@ -17,13 +17,13 @@ export const  generateThreeStopGradient = (hexColor: string, lightenFactor: numb
 	};
 
 	// Helper to convert RGB to hex
-	const rgbToHex = (r, g, b) =>
+	const rgbToHex = (r: number, g: number, b: number) =>
 		`#${[r, g, b]
 			.map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, "0"))
 			.join("")}`;
 
 	// Helper to scale RGB values
-	const scaleColor = (rgb, factor) => ({
+	const scaleColor = (rgb: {r: number, b: number, g: number}, factor: number) => ({
 		r: rgb.r * factor,
 		g: rgb.g * factor,
 		b: rgb.b * factor,

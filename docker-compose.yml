@@ -1,47 +1,60 @@
+# Satisfactory_App/docker-compose.yml
+
 services:
-  frontend:
-    build: ./frontend
-    container_name: satisfactory-frontend
+#  nginx:
+#    image: nginx:latest
+#    container_name: nginx
+#    ports:
+#      - "80:80"
+#    volumes:
+#      - type: bind
+#        source: ./nginx.conf
+#        target: /etc/nginx/nginx.conf
+#        read_only: true
+#    depends_on:
+##      - frontend
+#      - backend
+#    networks:
+#      - app-network
+  nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nginx
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-#    command: npm run dev -- --host       Commented this out because there's already a CMD in the Dockerfile
+      - "80:80"
+    depends_on:
+      - backend
     networks:
-      - app-network   # Frontend on app-network
+      - app-network
 
   backend:
     build: ./backend
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./backend:/app  # Ensure this points to your backend directory
-    env_file:
-      - ./backend/.env  # This points to the .env file in the backend folder
-    environment:
-      - APP_ENV=docker
+    container_name: satisfactory-backend
+    expose:
+      - "5000"
     depends_on:
       - db
     networks:
       - app-network
+    env_file:
+      - ./backend/.env.production
 
   db:
-    image: postgres:17                     # Use the official PostgreSQL image
-    container_name: satisfactory_app_db         # Name of the PostgreSQL container
+    image: postgres:17
+    container_name: satisfactory_app_db
     environment:
-      POSTGRES_USER: postgres               # Default PostgreSQL user
-      POSTGRES_PASSWORD: dbPass           # Password for the user
-      POSTGRES_DB: satisfactory_app_db                   # Default database created on startup
-    ports:
-      - "5434:5432"                         # Expose PostgreSQL on port 5434
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dbPass
+      POSTGRES_DB: satisfactory_app_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # Persist database data
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - app-network  # Ensure it's on the same network as the backend
+      - app-network
 
 networks:
-  app-network:  # Define a custom network for better service communication
+  app-network:
     driver: bridge
 
 volumes:
-  postgres_data:                            # Define a named volume for database persistence
+  postgres_data:

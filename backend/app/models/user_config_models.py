@@ -4,7 +4,7 @@
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, func, UniqueConstraint
 
 from .base import Base, Mapped, mapped_column, Optional, relationship, ForeignKey, str_30, num_6_2
 
@@ -52,9 +52,13 @@ class ProductionLineTarget(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     line_id: Mapped[int] = mapped_column(ForeignKey('production_lines.id'))
-    target_id_frontend: Mapped[str] = mapped_column(nullable=False, unique=True)
+    target_id_frontend: Mapped[str] = mapped_column(nullable=False)
     item_id: Mapped[int] = mapped_column(ForeignKey('items.id'), nullable=True)
     rate: Mapped[float] = mapped_column(default=0.0)
 
     item: Mapped["Item"] = relationship("Item", back_populates="production_line_target")
     production_line: Mapped["UserProductionLine"] = relationship("UserProductionLine", back_populates="production_line_target")
+
+    __table_args__ = (
+        UniqueConstraint('line_id', 'target_id_frontend', name='uq_line_id_target_id_frontend'),
+    )

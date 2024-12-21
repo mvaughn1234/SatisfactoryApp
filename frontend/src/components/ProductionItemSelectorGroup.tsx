@@ -108,9 +108,12 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd, o
 	// };
 
 	const handleRateBlur = () => {
-		const parsedRate = rate !== '' && rate !== null ? parseFloat(rate) : null;
-		if (product !== null && (parsedRate !== target.rate || product !== target.product)) {
-			onEdit?.(target.id, product, !isNaN(parsedRate) ? parsedRate : null); // Notify parent of changes
+		// const parsedRate = rate !== '' && rate !== null ? parseFloat(rate) : null;
+		// if (product !== null && (parsedRate !== target.rate || product !== target.product)) {
+		// 	onEdit?.(target.id, product, !isNaN(parsedRate) ? parsedRate : null); // Notify parent of changes
+		// }
+		if (product !== null && (rate !== target.rate || product !== target.product)) {
+			onEdit?.(target.id, product, rate); // rate is already a number | null
 		}
 	};
 
@@ -124,7 +127,7 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd, o
 		const currentLine = productionLines.find((line) => line['id'] === activeTabId)
 		if (currentLine) {
 			const updatedTarget = {
-				id: `${activeTabId}.${product?.id | '0'}`,
+				id: `${activeTabId}.${product?.id || '0'}`,
 				product: product,
 				rate: rate,
 			}
@@ -182,7 +185,13 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd, o
 				label={(isDummy || !rate) ? "Rate" : ''}
 				type="number"
 				value={rate || ''}
-				onChange={(e) => setRate(e.target.value)}
+				// onChange={(e) => setRate(e.target.value)}
+				onChange={(e) => {
+					const val = e.target.value;
+					// Convert immediately to a number (or null if empty)
+					const numericVal = val === '' ? null : parseFloat(val);
+					setRate(isNaN(numericVal as number) ? null : numericVal);
+				}}
 				variant="standard"
 				inputRef={rateInputRef}
 				onBlur={handleRateBlur}

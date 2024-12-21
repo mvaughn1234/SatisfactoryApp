@@ -1,5 +1,5 @@
+# Satisfactory_App/backend/app/migrations/env.py
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
 from alembic import context
 from app import create_app, db  # Import your create_app function and db instance
 from app.models.base import Base  # Import Base for metadata
@@ -42,7 +42,7 @@ def run_migrations_online():
             context.configure(
                 connection=connection,
                 target_metadata=target_metadata,
-                compare_type=True  # This ensures column type changes are detected
+                compare_type=True
             )
 
             with context.begin_transaction():

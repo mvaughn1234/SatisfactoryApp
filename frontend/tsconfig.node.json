@@ -1,4 +1,4 @@
-// tsconfig.node.json
+// Satisfactory_App/frontend/tsconfig.node.json
 {
   "compilerOptions": {
     "composite": true,

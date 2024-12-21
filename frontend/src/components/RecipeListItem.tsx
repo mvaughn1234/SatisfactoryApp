@@ -24,8 +24,8 @@ const Item = styled(Paper)(({theme}) => ({
 }));
 
 
-const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf_excluded, conf_preferred}) => {
-	const {updateRecipesKnown, updateRecipesExcluded, updateRecipesPreferred} = useRecipeConfigUpdate();
+const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf_excluded}) => {
+	const {updateRecipesKnown, updateRecipesExcluded} = useRecipeConfigUpdate();
 	const [known, setKnown] = useState<boolean>(conf_known);
 	const [excluded, setExcluded] = useState<boolean>(conf_excluded);
 	// const [preferred, setPreferred] = useState<number>(conf_preferred);
@@ -40,10 +40,10 @@ const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf
 		setExcluded((prev) => !prev);
 	}, [updateRecipesExcluded, recipe.id]);
 
-	const handlePreferredRecipe = useCallback(() => {
-		updateRecipesPreferred(recipe.id);
-		// setPreferred((prev) => !prev);
-	}, [updateRecipesPreferred, recipe.id]);
+	// const handlePreferredRecipe = useCallback(() => {
+	// 	updateRecipesPreferred(recipe.id);
+	// 	// setPreferred((prev) => !prev);
+	// }, [updateRecipesPreferred, recipe.id]);
 
 	return (
 		<ListItem disablePadding>

@@ -10,36 +10,17 @@ import RecipeCard from "./RecipeCard.tsx";
 
 interface ActiveRecipeWrapperProps {
 	selectedRecipe: RecipeDetail;
-	remainingRecipes: RecipeDetail[];
+	remainingRecipes: (RecipeDetail | undefined)[];
 	recipeGroupName: string;
-	onUpdate: (recipeId: number, statusType: string) => void;
+	// onUpdate: (recipeId: number, statusType: string) => void;
 }
 
 const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
 																																	 selectedRecipe,
 																																	 remainingRecipes,
 																																	 recipeGroupName,
-																																	 onUpdate
 																																 }) => {
-	// const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetail>(standard);
-	// const [remainingRecipes, setRemainingRecipes] = useState<RecipeDetail[] | []>([]);
 	const [expanded, setExpanded] = useState<boolean>(false);
-
-	// useEffect(() => {
-	// 	if (standard && standard.id) {
-	// 		setSelectedRecipe(standard)
-	// 		setRemainingRecipes(alternate ? alternate : [])
-	// 	} else {
-	// 		if (alternate && (alternate.length > 0)) {
-	// 			setSelectedRecipe(alternate[0])
-	// 		}
-	// 		if (alternate && (alternate.length > 1)) {
-	// 			setRemainingRecipes(alternate.slice(1))
-	// 		} else {
-	// 			setRemainingRecipes([])
-	// 		}
-	// 	}
-	// }, [alternate, standard]);
 
 	const handleChange = () => {
 		setExpanded(!expanded);
@@ -47,7 +28,7 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
 
 
 	return (
-		remainingRecipes?.length > 0 ?
+		(remainingRecipes && remainingRecipes?.length > 0) ?
 			<React.Fragment>
 				<ListItemButton onClick={handleChange} sx={{width: '100%', pl: 0}}>
 					<RecipeCard
@@ -57,13 +38,14 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
 						class_name={selectedRecipe.class_name}
 						ingredients={selectedRecipe.ingredients}
 						products={selectedRecipe.products}
+						manufactoring_duration={selectedRecipe.manufactoring_duration}
 					/>
 					{expanded ? <ExpandLess/> : <ExpandMore/>}
 				</ListItemButton>
 				<Collapse in={expanded} orientation="vertical" unmountOnExit sx={{width: '100%'}}>
 					<List sx={{width: '100%'}}>
 						{
-							remainingRecipes.map((recipe, index) => (
+							remainingRecipes?.map((recipe, index) => ( recipe &&
 								<ListItemButton
 									key={index}
 									sx={{pl: 4, width: '100%'}}
@@ -75,6 +57,7 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
 										class_name={recipe.class_name}
 										ingredients={recipe.ingredients}
 										products={recipe.products}
+										manufactoring_duration={selectedRecipe.manufactoring_duration}
 									/>
 								</ListItemButton>
 							))
@@ -93,6 +76,7 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
             ingredients={selectedRecipe.ingredients}
             products={selectedRecipe.products}
 						single={true}
+            manufactoring_duration={selectedRecipe.manufactoring_duration}
         />
 	)
 		;

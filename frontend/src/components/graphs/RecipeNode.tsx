@@ -12,7 +12,7 @@ interface RecipeNodeProps {
 }
 
 const RecipeNode: React.FC<RecipeNodeProps> = ({name, rate, representative_item_name, building_name=''}) => {
-	const img_src = `src/assets/images/items/${representative_item_name?.replaceAll(" ", "-").toLowerCase() || 'Iron-Plate'}_64.png`
+	const img_src = `src/assets/images/items/${representative_item_name?.split(" ").join("-").toLowerCase() || 'Iron-Plate'}_64.png`
 
 	return (
 		<Card sx={{ width: 250, bgcolor: orange[300] }}>

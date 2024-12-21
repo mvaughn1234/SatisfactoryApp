@@ -11,7 +11,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import React, {useMemo} from 'react';
 import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
 import {useProductionLineState} from "../store/ProductionLineContext.tsx";
-import {useRecipeConfigUpdate} from "../store/RecipeConfigStore.tsx";
+import {RecipeDetail} from "../types/Recipe.ts";
 import ActiveRecipeWrapper from "./ActiveRecipeWrapper.tsx";
 
 // Memoize ActiveRecipeWrapper to prevent unnecessary re-renders
@@ -20,8 +20,8 @@ const MemoizedActiveRecipeWrapper = React.memo(ActiveRecipeWrapper, (prevProps, 
 	return (
 		prevProps.selectedRecipe === nextProps.selectedRecipe &&
 		prevProps.remainingRecipes === nextProps.remainingRecipes &&
-		prevProps.recipeGroupName === nextProps.recipeGroupName &&
-		prevProps.onUpdate === nextProps.onUpdate
+		prevProps.recipeGroupName === nextProps.recipeGroupName
+		// prevProps.onUpdate === nextProps.onUpdate
 	);
 });
 
@@ -48,8 +48,6 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 																													 }) => {
 	const {recipesGroupedDetail, loading} = useAppStaticData();
 	const {optimizedLineData, loadingOptimization} = useProductionLineState()
-	const { updateRecipesKnown, updateRecipesExcluded, updateRecipesPreferred } = useRecipeConfigUpdate();
-	// const {activeRecipes, setActiveRecipes} = useState<ActiveRecipeGroup>([])
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -57,7 +55,7 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 		if (loading || loadingOptimization || !optimizedLineData || !recipesGroupedDetail) return [];
 
 		// const p_line_objects = Object.values(graph.production_line)
-		return Object.entries(optimizedLineData.production_line).map(([recipe_id, {recipe_data, scale}]) => {
+		return Object.entries(optimizedLineData.production_line).map(([recipe_id, {recipe_data}]) => {
 			const recipeGroupStandardFirst = recipesGroupedDetail.find((group) => group.standard?.id === recipe_data.id);
 			const recipeGroup = recipeGroupStandardFirst || recipesGroupedDetail.find((group) =>
 				group.alternate?.some((alt) => alt.id === recipe_data.id)
@@ -88,24 +86,12 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 				remainingRecipes,
 				recipeGroupName: recipeGroup.standard_product_display_name,
 			};
-		}).filter(Boolean); // Remove null entries
+		}).filter((item): item is {
+			selectedRecipe: RecipeDetail;
+			remainingRecipes: (RecipeDetail | undefined)[];
+			recipeGroupName: string;
+		} => item !== null); // Remove null entries
 	}, [optimizedLineData, recipesGroupedDetail]);
-
-	const handleUpdate = (recipeId: number, statusType: string) => {
-		switch (statusType) {
-			case 'known':
-				updateRecipesKnown(recipeId);
-				break;
-			case 'excluded':
-				updateRecipesExcluded(recipeId);
-				break;
-			case 'preferred':
-				updateRecipesPreferred(recipeId);
-				break;
-			default:
-				throw new Error('Invalid status type');
-		}
-	};
 
 	return (
 		<Drawer
@@ -113,7 +99,6 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 			anchor="left"
 			sx={{
 				width: isMobile ? '100%' : activeRecipeDrawerWidth,
-				// backgroundColor: 'red',
 				height: isMobile ? '100vh' : '100%',
 				overflowY: 'auto',
 				flexShrink: 0,
@@ -148,8 +133,6 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 					={
 					{
 						overflow: 'auto',
-						// width: '100%',
-						// backgroundColor: 'pink',
 						'::-webkit-scrollbar':
 							{
 								width: '4px',
@@ -183,7 +166,6 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 									selectedRecipe={selectedRecipe}
 									remainingRecipes={remainingRecipes}
 									recipeGroupName={recipeGroupName}
-									onUpdate={(recipe_id, statusType) => handleUpdate(recipe_id, statusType)}
 								/>
 							</ListItem>
 						))
