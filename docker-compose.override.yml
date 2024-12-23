@@ -1,51 +1,52 @@
-## Satisfactory_App/docker-compose.override.yml
-## I refactored this file from Satisfactory_App/docker-compose.yml to its current name
-## In order to preserve the development configurations while adding the docker-compose
-## for the build environment
-#services:
-#  frontend:
-#    build: ./frontend
-#    container_name: satisfactory-frontend
-#    ports:
-#      - "5173:5173"
-#    volumes:
-#      - ./frontend:/app
-##    command: npm run dev -- --host       Commented this out because there's already a CMD in the Dockerfile
-#    networks:
-#      - app-network   # Frontend on app-network
-#
-#  backend:
-#    build: ./backend
-#    ports:
-#      - "5000:5000"
-#    volumes:
-#      - ./backend:/app  # Ensure this points to your backend directory
-#    env_file:
-#      - ./backend/.env.development  # This points to the .env file in the backend folder
-#    environment:
-#      - APP_ENV=docker
-#    depends_on:
-#      - db
-#    networks:
-#      - app-network
-#
-#  db:
-#    image: postgres:17                     # Use the official PostgreSQL image
-#    container_name: satisfactory_app_db         # Name of the PostgreSQL container
-#    environment:
-#      POSTGRES_USER: postgres               # Default PostgreSQL user
-#      POSTGRES_PASSWORD: dbPass           # Password for the user
-#      POSTGRES_DB: satisfactory_app_db                   # Default database created on startup
-#    ports:
-#      - "5434:5432"                         # Expose PostgreSQL on port 5434
-#    volumes:
-#      - postgres_data:/var/lib/postgresql/data  # Persist database data
-#    networks:
-#      - app-network  # Ensure it's on the same network as the backend
-#
-#networks:
-#  app-network:  # Define a custom network for better service communication
-#    driver: bridge
-#
-#volumes:
-#  postgres_data:                            # Define a named volume for database persistence
+# Satisfactory_App/docker-compose.override.yml
+# I refactored this file from Satisfactory_App/docker-compose.yml to its current name
+# In order to preserve the development configurations while adding the docker-compose
+# for the build environment
+services:
+  frontend:
+    build: ./frontend
+    container_name: satisfactory-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+#    command: npm run dev -- --host       Commented this out because there's already a CMD in the Dockerfile
+    networks:
+      - app-network   # Frontend on app-network
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app  # Ensure this points to your backend directory
+    env_file:
+      - ./backend/.env.development  # This points to the .env file in the backend folder
+    environment:
+      - APP_ENV=local
+      - FLASK_ENV=development
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  db:
+    image: postgres:17                     # Use the official PostgreSQL image
+    container_name: satisfactory_app_db         # Name of the PostgreSQL container
+    environment:
+      POSTGRES_USER: postgres               # Default PostgreSQL user
+      POSTGRES_PASSWORD: dbPass           # Password for the user
+      POSTGRES_DB: satisfactory_app_db                   # Default database created on startup
+    ports:
+      - "5434:5432"                         # Expose PostgreSQL on port 5434
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist database data
+    networks:
+      - app-network  # Ensure it's on the same network as the backend
+
+networks:
+  app-network:  # Define a custom network for better service communication
+    driver: bridge
+
+volumes:
+  postgres_data:                            # Define a named volume for database persistence

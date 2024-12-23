@@ -1,117 +1,264 @@
+import {Paper, Typography} from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import React, {useRef, useEffect} from "react";
 import * as d3 from "d3";
-import {Divider, Paper, Typography} from "@mui/material";
+import React, {useEffect, useMemo, useRef} from "react";
 import raw_resource_lookup from "../../data/rawResourceLookup.ts";
-import {raw_resource_lookup_props} from "../../types/Other.ts";
 import {OptimizationResult} from "../../types/ProductionLine.ts";
 import "./D3ResourceUseGraph.css";
-
-interface circleGraphDataProps {
-	width: number,
-	data: {
-		id: number;
-		name: string;
-		quantity: number;
-		limit: number;
-		gradient: string[];
-		backgroundColor: string;
-	}
-}
-
-const processData = (usage: OptimizationResult['raw_resource_usage'], lookup: raw_resource_lookup_props) => {
-	const no_water = usage.filter((item) => item.item_id != 157)
-	const mapped_data = no_water.map((item) => ({
-		id: item.item_id,
-		name: lookup[item.item_id]?.display_name || "Unknown",
-		quantity: item.total_quantity,
-		limit: lookup[item.item_id]?.global_limit || 0,
-		// color: lookup[item.item_id]?.color || "#2196F3"
-		gradient: lookup[item.item_id]?.gradient || ["#ffffff", "#2196F3", "#1976D2"],
-		backgroundColor: "#ffffff"
-	}));
-	return mapped_data.sort((a, b) => b.quantity - a.quantity);
-};
 
 interface D3ResourceUseGraphProps {
 	data: OptimizationResult;
 	maxHeight: number;
 }
 
-const CircularResourceGraph: React.FC<circleGraphDataProps> = ({width, data}) => {
-	const ringWidth = 15;
-	const radius = width / 2 - ringWidth / 2; // Adjust for 20px thickness
-	const arcRef = useRef<SVGSVGElement | null>(null);
+// 1. Define the interface for your data (the "datum").
+interface ArcData {
+	id: number;
+	name: string;
+	quantity: number;
+	limit: number;
+	gradient: string[];
+	backgroundColor: string;
+	startAngle?: number;
+	endAngle: number;
 
+	// Extra fields to store old angles for transitions
+	_oldStartAngle?: number;
+	_oldEndAngle?: number;
+}
+
+/** Component props */
+interface CircularResourceGraphProps {
+	width: number;
+	data: ArcData;  // or ArcData[] if you handle multiple arcs
+}
+
+const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, data }) => {
+	const ringWidth = 10;
+	// Example: the radius is half the width minus half the ring thickness
+	const radius = width / 2 - ringWidth / 2;
+	const svgRef = useRef<SVGSVGElement | null>(null);
+	useEffect(() => { console.log('Mounted'); return () => console.log('Unmounted') }, [])
 	useEffect(() => {
-		if (!data || !arcRef.current) return;
+		if (!svgRef.current) return;
 
-		const {quantity, limit, gradient, backgroundColor} = data;
-		const percentage = Math.min(quantity / limit, 1);
+		const svg = d3.select(svgRef.current);
 
-		const svg = d3.select(arcRef.current);
-		svg.selectAll("*").remove(); // Clear previous renders
-
-		const defs = svg.append("defs");
-
-		// Gradient definition
-		const gradientId = `gradient-${data.id}`;
-		const gradientFill = defs
-			.append("linearGradient")
-			.attr("id", gradientId)
-			.attr("x1", "0%")
-			.attr("y1", "0%")
-			.attr("x2", "100%")
-			.attr("y2", "0%");
-
-		gradient.forEach((color, i) => {
-			gradientFill
-				.append("stop")
-				.attr("offset", `${(i / (gradient.length - 1)) * 100}%`)
-				.attr("stop-color", color);
-		});
-
+		// -------------------------------------------------------------------
+		// 1. Setup ARC GENERATORS
+		// -------------------------------------------------------------------
+		const isOverLimit = data.quantity > data.limit;
 		const innerRadiusNominal = radius - ringWidth;
-		const innerRadius = data.quantity > data.limit ? innerRadiusNominal - 2 : innerRadiusNominal
-		const outerRadius = data.quantity > data.limit ? radius - 2 : radius
-		const arc = d3.arc<{ startAngle: number; endAngle: number }>()
+		const innerRadius = isOverLimit ? innerRadiusNominal - 2 : innerRadiusNominal;
+		const outerRadius = isOverLimit ? radius - 2 : radius;
+
+		// Foreground (usage) arc
+		const fgArcGen = d3
+			.arc<ArcData>()
 			.innerRadius(innerRadius)
 			.outerRadius(outerRadius);
 
-		const warningArc = d3.arc<{ startAngle: number; endAngle: number }>()
-			.innerRadius(innerRadius - 2)
+		// Background arc (full circle)
+		const bgArcGen = d3
+			.arc<ArcData>()
+			.innerRadius(innerRadiusNominal)
 			.outerRadius(radius);
 
-		// Background arc
-		svg
-			.append("path")
-			.attr("d", arc({startAngle: 0, endAngle: 2 * Math.PI}))
-			.attr("fill", backgroundColor)
-			.attr("transform", `translate(${radius},${radius})`);
+		// Warning arc (if quantity > limit)
+		const warningArcGen = d3
+			.arc<ArcData>()
+			.innerRadius(innerRadiusNominal - 2)
+			.outerRadius(radius);
 
-		// Foreground warning arc for usage > limit
-		if (data.quantity > data.limit) {
-			svg
-				.append("path")
-				.attr("d", warningArc({startAngle: .5 * 2 * Math.PI, endAngle: .5 * 2 * Math.PI + percentage * 2 * Math.PI}))
-				// .attr("fill", `url(#${gradientId})`)
-				.attr("fill", "#ff2525")
-				.attr("transform", `translate(${radius},${radius})`);
+		// -------------------------------------------------------------------
+		// 2. Create or update <defs> for gradient
+		//    (If you have a gradient per arc, do it once per `id`.)
+		// -------------------------------------------------------------------
+		let defs = svg.select("defs");
+		if (defs.empty()) {
+			defs = svg.append("defs");
 		}
 
-		// Foreground arc for usage
+		const gradientId = `gradient-${data.id}`;
+		let gradientSel = defs.select<SVGLinearGradientElement>(`#${gradientId}`);
+		if (gradientSel.empty()) {
+			// Create a new <linearGradient> if it doesn’t exist yet
+			gradientSel = defs
+				.append("linearGradient")
+				.attr("id", gradientId)
+				.attr("x1", "0%")
+				.attr("y1", "0%")
+				.attr("x2", "100%")
+				.attr("y2", "0%");
+
+			data.gradient.forEach((color, i) => {
+				gradientSel
+					.append("stop")
+					.attr("offset", `${(i / (data.gradient.length - 1)) * 100}%`)
+					.attr("stop-color", color);
+			});
+		}
+
+		// -------------------------------------------------------------------
+		// 3. Wrap the data in an array (if you only have one arc)
+		//    so we can use .data(...) with a stable key
+		// -------------------------------------------------------------------
+		const arcsData = [data];
+
+		// -------------------------------------------------------------------
+		// 4. BACKGROUND ARC using .join()
+		// -------------------------------------------------------------------
 		svg
-			.append("path")
-			.attr("d", arc({startAngle: .5 * 2 * Math.PI, endAngle: .5 * 2 * Math.PI + percentage * 2 * Math.PI}))
-			// .attr("fill", `url(#${gradientId})`)
-			.attr("fill", (data.quantity <= data.limit ? gradient[Math.floor(gradient.length / 2)] : "#ff8c8c"))
-			.attr("transform", `translate(${radius},${radius})`);
+			.selectAll<SVGPathElement, ArcData>(".background-arc")
+			.data(arcsData, (d) => d.id) // key by id
+			.join(
+				(enter) =>
+					enter
+						.append("path")
+						.attr("class", "background-arc")
+						.attr("transform", `translate(${radius},${radius})`)
+						.attr("fill", (d) => d.backgroundColor)
+						// No transition if you don’t want the background to animate:
+						.attr("d", (d) =>
+							bgArcGen({
+								...d,
+								startAngle: 0.5 * 2 * Math.PI,
+								endAngle: 0.5 * 2 * Math.PI + 2 * Math.PI,
+							}) ?? ""
+						),
+				// update selection
+				(update) =>
+					update
+						.attr("transform", `translate(${radius},${radius})`)
+						.attr("fill", (d) => d.backgroundColor)
+						.attr("d", (d) =>
+							bgArcGen({
+								...d,
+								startAngle: 0.5 * 2 * Math.PI,
+								endAngle: 0.5 * 2 * Math.PI + 2 * Math.PI,
+							}) ?? ""
+						),
+				// exit selection
+				(exit) => exit.remove()
+			);
+
+		// -------------------------------------------------------------------
+		// 5. WARNING ARC using .join()
+		//    only if quantity > limit
+		// -------------------------------------------------------------------
+		const showWarning = data.quantity > data.limit;
+		svg
+			.selectAll<SVGPathElement, ArcData>(".warning-arc")
+			// If showWarning is false, supply an empty array → they all exit
+			.data(showWarning ? arcsData : [], (d) => d.id)
+			.join(
+				(enter) =>
+					enter
+						.append("path")
+						.attr("class", "warning-arc")
+						.attr("transform", `translate(${radius},${radius})`)
+						.attr("fill", "#ff2525")
+						.attr("d", (d) =>
+							warningArcGen({
+								...d,
+								startAngle: 0.5 * 2 * Math.PI,
+								endAngle: 0.5 * 2 * Math.PI + 2 * Math.PI,
+							}) ?? ""
+						),
+				(update) =>
+					update
+						.attr("transform", `translate(${radius},${radius})`)
+						.attr("fill", "#ff2525")
+						.attr("d", (d) =>
+							warningArcGen({
+								...d,
+								startAngle: 0.5 * 2 * Math.PI,
+								endAngle: 0.5 * 2 * Math.PI + 2 * Math.PI,
+							}) ?? ""
+						),
+				(exit) => exit.remove()
+			);
+
+		// -------------------------------------------------------------------
+		// 6. FOREGROUND ARC (usage) with smooth transitions
+		// -------------------------------------------------------------------
+		svg
+			.selectAll<SVGPathElement, ArcData>(".foreground-arc")
+			.data(arcsData, (d) => d.id)
+			.join(
+				// ENTER:
+				enter =>
+					enter
+						.append("path")
+						.attr("class", "foreground-arc")
+						.attr("transform", `translate(${radius},${radius})`)
+						.attr("fill", (d) =>
+							d.quantity <= d.limit ? `url(#${gradientId})` : "#ff8c8c"
+						)
+
+		// Give it some initial angles (maybe zero-length)
+						.attr("d", (d) => fgArcGen({ ...d, startAngle: 0.5 * 2 * Math.PI, endAngle: 0.5 * 2 * Math.PI }) ?? "")
+						.each(function (d) {
+							this._oldStartAngle = 0.5 * 2 * Math.PI;
+						})
+						.transition()
+						.duration(750)
+						.attrTween("d", function (d) {
+							// Now tween from startAngle → endAngle
+							const i = d3.interpolate(0.5 * 2 * Math.PI, d.endAngle);
+							return (t) => fgArcGen({ ...d, startAngle: 0.5 * 2 * Math.PI, endAngle: i(t) }) ?? "";
+						}).on("end", function (d) {
+						// When the transition is done, store the new angles
+						this._oldEndAngle = d.endAngle;
+					}),
+
+				// UPDATE:
+				update => {
+					update
+						.attr("transform", `translate(${radius},${radius})`)
+						.transition()
+						.duration(750)
+						.attrTween("d", function (d) {
+							// 1) Get old angles from the existing DOM-bound data
+							const oldEnd = this._oldEndAngle ?? (0.5 * 2 * Math.PI);
+							const iEnd = d3.interpolate(oldEnd, d.endAngle);
+
+							// console.log("UPDATE arc", d.id, {
+							// 	oldStart,
+							// 	oldEnd,
+							// 	newEnd: d.endAngle,
+							// });
+
+							return (t) => fgArcGen({
+								...d,
+								startAngle: 0.5 * 2 * Math.PI,  // or oldStart, if you prefer
+								endAngle: iEnd(t),
+							}) ?? "";
+						})
+						.on("end", function (d) {
+							this._oldEndAngle = d.endAngle;
+						});
+				},
+
+				// EXIT
+				exit => exit.remove()
+			);
 
 	}, [data, radius]);
+	useEffect(() => {
+		console.log(`[${data.id}] Mounted CircularResourceGraph`);
+		return () => {
+			console.log(`[${data.id}] Unmounted CircularResourceGraph`);
+		};
+	}, []);
 
 	return (
-		<div style={{position: "relative", width: radius * 2, height: radius * 2}}>
-			<svg ref={arcRef} width={radius * 2} height={radius * 2}/>
+		<div style={{
+			position: "relative",
+			minWidth: radius * 2,
+			height: radius * 2
+		}}>
+			<svg ref={svgRef} width={radius * 2} height={radius * 2}/>
 			<div
 				style={{
 					position: "absolute",
@@ -121,25 +268,65 @@ const CircularResourceGraph: React.FC<circleGraphDataProps> = ({width, data}) =>
 					textAlign: "center",
 				}}
 			>
-				<Typography variant="body1" component="div">
-					{data.quantity}
-				</Typography>
-				<Divider style={{margin: "4px 0"}}/>
-				<Typography variant="caption" component="div">
-					/ {data.limit}
-				</Typography>
+				{/*<Typography variant="subtitle2" component="div">*/}
+				{/*	{data.quantity.toFixed(2).toLocaleString()}*/}
+				{/*</Typography>*/}
+				{/*<Divider style={{margin: "2px 0"}}/>*/}
+				{/*<Typography variant="body2" component="div">*/}
+				{/*	{data.limit.toLocaleString('en-US')}*/}
+				{/*</Typography>*/}
 			</div>
 		</div>
 	);
 };
 
+const MemoizedCircularResourceGraph = React.memo(
+	CircularResourceGraph,
+	(prevProps, nextProps) => {
+		// Return true only if *all* relevant fields are the same.
+		return (
+			prevProps.width === nextProps.width &&
+			prevProps.data.id === nextProps.data.id &&
+			prevProps.data.quantity === nextProps.data.quantity &&
+			prevProps.data.limit === nextProps.data.limit
+			// possibly check gradient array equality, etc.
+		);
+	}
+);
+
 
 const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}) => {
-	const processedData = processData(data.raw_resource_usage, raw_resource_lookup);
+	const processedData = useMemo(
+		() => {
+			const usage = data.raw_resource_usage
+			const lookup = raw_resource_lookup
+			const no_water = usage.filter((item) => item.item_id !== 157);
+			const mapped_data = no_water.map((item) => ({
+				id: item.item_id,
+				name: lookup[item.item_id]?.display_name || "Unknown",
+				quantity: item.total_quantity,
+				limit: lookup[item.item_id]?.global_limit || 0,
+				gradient: lookup[item.item_id]?.gradient || [
+					"#ffffff",
+					"#2196F3",
+					"#1976D2",
+				],
+				backgroundColor: "#fff3f3",
+				endAngle:
+					0.5 * 2 * Math.PI +
+					Math.min(item.total_quantity / (lookup[item.item_id]?.global_limit || 0), 1) *
+					2 *
+					Math.PI,
+			}));
+			return mapped_data.sort((a, b) => b.quantity - a.quantity);
+		},
+		[data, raw_resource_lookup]
+	);
+	console.log("processedData:", processedData.map(d => d.id));
 
 	return (
 		<Paper
-			elevation={3}
+			elevation={1}
 			style={{
 				padding: 8,
 				width: "100%",
@@ -147,14 +334,14 @@ const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxH
 				overflowY: "auto",
 			}}
 		>
-			<Typography variant="h6" gutterBottom>
+			<Typography variant="h5" gutterBottom>
 				Raw Resource Usage
 			</Typography>
 			<Grid container spacing={2}>
 				{processedData.map((item) => (
-					<Grid size={{xs: 4}} sx={{textAlign: "center"}} key={item.id}>
-						<CircularResourceGraph width={100} data={item}/>
-						<Typography variant="body2">{item.name}</Typography>
+					<Grid size={{xs: 6, sm: 4, md: 4, lg: 4}} sx={{textAlign: "center"}} key={item.name}>
+						<MemoizedCircularResourceGraph width={70} data={item}/>
+						<Typography variant="body1">{item.name}</Typography>
 					</Grid>
 				))}
 			</Grid>

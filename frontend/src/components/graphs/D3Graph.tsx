@@ -219,7 +219,6 @@ const D3Graph: React.FC<GraphProps> = ({
 		};
 
 		const {nodes, links} = transformData(data);
-		console.log(nodes, links)
 
 		// Create an SVG canvas
 		const svg = d3.select(containerRef.current)

@@ -7,6 +7,7 @@ import ActiveRecipeList from "../components/ActiveRecipeList.tsx";
 import GlobalRecipeDrawer from "../components/GlobalRecipeDrawer.tsx";
 import D3GlobalResourceLimitViz from "../components/graphs/D3GlobalResourceLimitViz.tsx";
 import D3Graph from "../components/graphs/D3Graph.tsx";
+import D3Graph4 from "../components/graphs/D3Graph4.tsx";
 import D3ResourceUseGraph from "../components/graphs/D3ResourceUseGraph.tsx";
 import ProductionTargetsGroup from "../components/ProductionTargetsGroup.tsx";
 import {useProductionLineState, useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
@@ -109,14 +110,14 @@ const CalculatorLayout: React.FC = () => {
 				}
 
 				<Box
-					sx={{p: 2, borderBottom: `1px solid ${theme.palette.divider}`, overflow: 'auto'}}
+					sx={{p: 2, borderBottom: `1px solid ${theme.palette.divider}`}}
 				>
 					<ProductionTargetsGroup/>
 				</Box>
 
 				<Box sx={{flexGrow: 1}}>
-					<Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12, lg: 16, xl: 20 }}>
-						{/* Main Graph - Takes 9/12 of the Grid */}
+					<Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 12, sm: 12, md: 12, lg: 12, xl: 12 }}>
+						{/*/!* Main Graph - Takes 9/12 of the Grid *!/*/}
 						<Grid size={{ xs: 4, sm: 8, md: 12, lg: 12, xl: 12 }}>
 							<Item>
 								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
@@ -131,7 +132,7 @@ const CalculatorLayout: React.FC = () => {
 						</Grid>
 
 						{/* Resource Use Graph - Takes 3/12 of the Grid */}
-						<Grid size={{ xs: 4, sm: 6, md: 6, lg: 4, xl: 8 }}>
+						<Grid size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 4 }}>
 							<Item>
 								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
 									{optimizedLineData ? (
@@ -144,11 +145,24 @@ const CalculatorLayout: React.FC = () => {
 						</Grid>
 
 						{/* Resource Use Graph - Takes 3/12 of the Grid */}
-						<Grid size={{ xs: 4, sm: 6, md: 6, lg: 4, xl: 8 }}>
+						<Grid size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 4 }}>
 							<Item>
 								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
 									{optimizedLineData ? (
 										<D3GlobalResourceLimitViz data={optimizedLineData} maxHeight={graphHeight}/>
+									) : (
+										"No data available"
+									)}
+								{/*</Box>*/}
+							</Item>
+						</Grid>
+
+						{/* Resource Use Graph - Takes 3/12 of the Grid */}
+						<Grid size={{ xs: 12, sm: 12, md: 6, lg: 4, xl: 4 }}>
+							<Item>
+								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
+									{optimizedLineData ? (
+										<D3Graph4 data={optimizedLineData} maxHeight={graphHeight}/>
 									) : (
 										"No data available"
 									)}

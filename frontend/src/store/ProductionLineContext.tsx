@@ -42,13 +42,10 @@ export const ProductionLineProvider: React.FC<ProductionLineProviderProps> = ({c
 	// Fetch optimization results and store in optimized line data
 	const fetchOptimizationData = useCallback(
 		debounce(async (activeTabId: string) => {
-			console.log('debounce fetching optimization')
 			setLoadingOptimization(true);
 			try {
 				if (activeTabId) {
-					console.log('found active line')
 					const results = await fetchLineOptimizationCalculation(activeTabId);
-					console.log('setting results')
 					setOptimizedLineData(results ?? undefined);
 					setCalculationError(null); // Clear any previous errors
 					setLoadingOptimization(false);

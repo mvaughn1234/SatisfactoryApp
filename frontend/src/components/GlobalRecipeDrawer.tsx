@@ -111,7 +111,7 @@ const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, glo
 						overflow: 'auto'
 					}}
 				>
-					{!(loading && loadingRecipeConfigs) ? recipesComponentsDetail.map((recipe) => (
+					{(!loading && !loadingRecipeConfigs) ? recipesComponentsDetail.map((recipe) => (
 							<MemoizedRecipeListItem
 								key={recipe.id}
 								recipe={recipe}

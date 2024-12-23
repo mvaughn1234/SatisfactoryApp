@@ -19,12 +19,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set environment variables from .env (Optional if using docker-compose env_file)
-# ENV FLASK_APP=run.py
-# ENV FLASK_ENV=development
+ENV FLASK_APP=run.py
+ENV FLASK_ENV=development
 
 # Expose the port Flask will run on
 EXPOSE 5000
 
 # Run the application
-CMD ["bash", "-c", "flask db upgrade && flask run --host=0.0.0.0"]
-#CMD ["bash", "-c", "flask db upgrade && flask run --host=0.0.0.0 --debug"]
+#CMD ["bash", "-c", "flask db upgrade && flask run --host=0.0.0.0"]
+CMD ["bash", "-c", "flask db upgrade && flask run --host=0.0.0.0 --debug"]

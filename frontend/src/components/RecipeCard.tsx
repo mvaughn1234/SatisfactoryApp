@@ -20,11 +20,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 																								 ingredients,
 																								 products,
 																								 single = false,
-																								 manufactoring_duration = 0,
+																								 _manufactoring_duration,
 																							 }) => {
 	const [detailCard, setDetailCard] = useState(false);
 	const {isPreferred, setPreferred} = usePreferredRecipe(id);
-	console.log("eating useless variable to remove error: ", manufactoring_duration)
+	// console.log("eating useless variable to remove error: ", manufactoring_duration)
 	// const handleClick = () => {
 	// 	setDetailCard(!detailCard);
 	// }

@@ -187,7 +187,9 @@ const D3ResourceUseGraph: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}
 			.attr("x", margin.left - 10) // Position text before the bar
 			.attr("y", (d) => {
 				const yVal = yScale(d.name);
-				return yVal !== undefined ? + yScale.bandwidth() / 2 : 0;
+				// console.log("yVal: ", yVal)
+				// console.log("yVal Check: ", yVal !== undefined ? + yScale.bandwidth() / 2 : 0)
+				return yVal !== undefined ? yVal + yScale.bandwidth() / 2 : 0;
 			})
 			.attr("dy", "0.35em")
 			.attr("text-anchor", "end") // Align text to the right
@@ -234,12 +236,12 @@ const D3ResourceUseGraph: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}
 			.attr("class", "bar-label")
 			.attr("x", (d) => {
 				const barWidth = xScale(d.quantity) - margin.left; // Calculate bar width
-				const textWidth = ( d.quantity.toFixed(2).length + 4.5 ) * 7.5; // Approximate text width (7.5px per character): + 4 for ' / min'
+				const textWidth = ( d.quantity.toFixed(2).length + 4.5 ) * 7.5; // Approximate text width (7.5px per character): + 4 for '/ min'
 				return barWidth > textWidth ? xScale(d.quantity) - textWidth + 3 : xScale(d.quantity) + 5; // Inside if wide enough, outside otherwise
 			})
 			.attr("y", (d) => {
 				const yVal = yScale(d.name);
-				return yVal !== undefined ? + yScale.bandwidth() / 2 : 0;
+				return yVal !== undefined ? yVal + yScale.bandwidth() / 2 : 0;
 			})
 			.attr("dy", "0.35em") // Fine-tune vertical alignment
 			.attr("fill", (d) => {
@@ -250,19 +252,20 @@ const D3ResourceUseGraph: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}
 			.attr("font-size", "14px")
 			.attr("font-weight", "bold") // Optional: Make it bold for better visibility
 			.attr("text-anchor", "start")
-			.text((d) => `${d.quantity.toFixed(2)} / min`);
+			.text((d) => `${d.quantity.toFixed(2).toLocaleString()} / min`);
 
 
 	}, [data, width]);
 
 	return (
 		<Paper
-			elevation={3}
+			elevation={1}
 			style={{
 				padding: 8,
 				width: "100%",
 				maxHeight: maxHeight,
-				overflowY: height > maxHeight ? "auto" : "visible",
+				overflowY: height > maxHeight-30 ? "auto" : "visible",
+				// backgroundColor:
 			}}
 		>
 			<Typography variant="h6" gutterBottom>

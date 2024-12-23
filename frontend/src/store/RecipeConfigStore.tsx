@@ -42,11 +42,12 @@ export const RecipeConfigProvider: React.FC<RecipeConfigProviderProps> = ({ chil
 	const { fetchedRecipeConfigs } = useFetchUserRecipeConfig();
 
 	useEffect(() => {
-		setLoadingRecipeConfigs(fetchedRecipeConfigs.loading);
+		setLoadingRecipeConfigs(true);
 
 		if (!fetchedRecipeConfigs.loading && Object.keys(fetchedRecipeConfigs.data).length) {
 			setRecipeIds(Object.keys(fetchedRecipeConfigs.data).map(key => parseInt(key, 10)));
 			setRecipeConfigs(fetchedRecipeConfigs.data);
+			setLoadingRecipeConfigs(false);
 		}
 
 		if (fetchedRecipeConfigs.error) {
