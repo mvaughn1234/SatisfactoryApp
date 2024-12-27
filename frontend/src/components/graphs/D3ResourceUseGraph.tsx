@@ -1,10 +1,11 @@
+import {useTheme} from "@mui/material/styles";
 import React, {useRef, useEffect, useState} from "react";
 import * as d3 from "d3";
 import { Paper, Typography } from "@mui/material";
 import raw_resource_lookup from "../../data/rawResourceLookup.ts";
 import {raw_resource_lookup_props} from "../../types/Other.ts";
 import {OptimizationResult} from "../../types/ProductionLine.ts";
-import "./D3ResourceUseGraph.css";
+import "./NewD3ResourceUseGraph.css";
 
 const processData = (usage: OptimizationResult['raw_resource_usage'], lookup: raw_resource_lookup_props) => {
 	const no_water = usage.filter((item) => item.item_id != 157)
@@ -26,6 +27,7 @@ interface D3ResourceUseGraphProps {
 }
 
 const D3ResourceUseGraph: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}) => {
+	const theme = useTheme();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [width, setWidth] = useState<number>(0);
 	const [height, setHeight] = useState<number>(0);
@@ -164,6 +166,7 @@ const D3ResourceUseGraph: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}
 			.data(processedData)
 			.enter()
 			.append("rect")
+			.attr("stroke", "#000")
 			.attr("class", "bar")
 			.attr("x", margin.left)
 			.attr("y", (d) => {
@@ -194,7 +197,7 @@ const D3ResourceUseGraph: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}
 			.attr("dy", "0.35em")
 			.attr("text-anchor", "end") // Align text to the right
 			.text((d) => d.name)
-			.attr("fill", "#555");
+			.attr("fill", theme.palette.text.primary);
 
 		// // Add shimmering overlay for Sam Ore
 		// const samOre = processedData.find((d) => d.name === "Sam Ore");
@@ -264,7 +267,7 @@ const D3ResourceUseGraph: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}
 				padding: 8,
 				width: "100%",
 				maxHeight: maxHeight,
-				overflowY: height > maxHeight-30 ? "auto" : "visible",
+				overflowY: height > maxHeight - 30 ? "auto" : "visible",
 				// backgroundColor:
 			}}
 		>

@@ -1,10 +1,10 @@
-import {Paper, Typography} from "@mui/material";
+import {Box, Typography} from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import * as d3 from "d3";
 import React, {useEffect, useMemo, useRef} from "react";
 import raw_resource_lookup from "../../data/rawResourceLookup.ts";
 import {OptimizationResult} from "../../types/ProductionLine.ts";
-import "./D3ResourceUseGraph.css";
+import "./NewD3ResourceUseGraph.css";
 
 interface D3ResourceUseGraphProps {
 	data: OptimizationResult;
@@ -38,11 +38,11 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 	// Example: the radius is half the width minus half the ring thickness
 	const radius = width / 2 - ringWidth / 2;
 	const svgRef = useRef<SVGSVGElement | null>(null);
-	useEffect(() => { console.log('Mounted'); return () => console.log('Unmounted') }, [])
+	// useEffect(() => { console.log('Mounted'); return () => console.log('Unmounted') }, [])
 	useEffect(() => {
 		if (!svgRef.current) return;
 
-		const svg = d3.select(svgRef.current);
+		const svg = d3.select<SVGSVGElement, ArcData>(svgRef.current);
 
 		// -------------------------------------------------------------------
 		// 1. Setup ARC GENERATORS
@@ -74,9 +74,9 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 		// 2. Create or update <defs> for gradient
 		//    (If you have a gradient per arc, do it once per `id`.)
 		// -------------------------------------------------------------------
-		let defs = svg.select("defs");
+		let defs = svg.select<SVGDefsElement>("defs");
 		if (defs.empty()) {
-			defs = svg.append("defs");
+			defs = svg.append<SVGDefsElement>("defs");
 		}
 
 		const gradientId = `gradient-${data.id}`;
@@ -143,43 +143,6 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 			);
 
 		// -------------------------------------------------------------------
-		// 5. WARNING ARC using .join()
-		//    only if quantity > limit
-		// -------------------------------------------------------------------
-		const showWarning = data.quantity > data.limit;
-		svg
-			.selectAll<SVGPathElement, ArcData>(".warning-arc")
-			// If showWarning is false, supply an empty array → they all exit
-			.data(showWarning ? arcsData : [], (d) => d.id)
-			.join(
-				(enter) =>
-					enter
-						.append("path")
-						.attr("class", "warning-arc")
-						.attr("transform", `translate(${radius},${radius})`)
-						.attr("fill", "#ff2525")
-						.attr("d", (d) =>
-							warningArcGen({
-								...d,
-								startAngle: 0.5 * 2 * Math.PI,
-								endAngle: 0.5 * 2 * Math.PI + 2 * Math.PI,
-							}) ?? ""
-						),
-				(update) =>
-					update
-						.attr("transform", `translate(${radius},${radius})`)
-						.attr("fill", "#ff2525")
-						.attr("d", (d) =>
-							warningArcGen({
-								...d,
-								startAngle: 0.5 * 2 * Math.PI,
-								endAngle: 0.5 * 2 * Math.PI + 2 * Math.PI,
-							}) ?? ""
-						),
-				(exit) => exit.remove()
-			);
-
-		// -------------------------------------------------------------------
 		// 6. FOREGROUND ARC (usage) with smooth transitions
 		// -------------------------------------------------------------------
 		svg
@@ -193,12 +156,12 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 						.attr("class", "foreground-arc")
 						.attr("transform", `translate(${radius},${radius})`)
 						.attr("fill", (d) =>
-							d.quantity <= d.limit ? `url(#${gradientId})` : "#ff8c8c"
+							// d.quantity <= d.limit ? `url(#${gradientId})` : "#ff8c8c"
+							d.quantity <= d.limit ? d.gradient[1] : "#ff8c8c"
 						)
-
-		// Give it some initial angles (maybe zero-length)
+						// Give it some initial angles (maybe zero-length)
 						.attr("d", (d) => fgArcGen({ ...d, startAngle: 0.5 * 2 * Math.PI, endAngle: 0.5 * 2 * Math.PI }) ?? "")
-						.each(function (d) {
+						.each(function () {
 							this._oldStartAngle = 0.5 * 2 * Math.PI;
 						})
 						.transition()
@@ -244,13 +207,51 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 				exit => exit.remove()
 			);
 
+		// -------------------------------------------------------------------
+		// 5. WARNING ARC using .join()
+		//    only if quantity > limit
+		// -------------------------------------------------------------------
+		const showWarning = data.quantity > data.limit+1;
+		svg
+			.selectAll<SVGPathElement, ArcData>(".warning-arc")
+			// If showWarning is false, supply an empty array → they all exit
+			.data(showWarning ? arcsData : [], (d) => d.id)
+			.join(
+				(enter) =>
+					enter
+						.append("path")
+						.attr("class", "warning-arc")
+						.attr("transform", `translate(${radius},${radius})`)
+						.attr("fill", "#ff2525")
+						.attr("d", (d) =>
+							warningArcGen({
+								...d,
+								startAngle: 0.5 * 2 * Math.PI,
+								endAngle: 0.5 * 2 * Math.PI + 2 * Math.PI,
+							}) ?? ""
+						),
+				(update) =>
+					update
+						.attr("transform", `translate(${radius},${radius})`)
+						.attr("fill", "#ff2525")
+						.attr("d", (d) =>
+							warningArcGen({
+								...d,
+								startAngle: 0.5 * 2 * Math.PI,
+								endAngle: 0.5 * 2 * Math.PI + 2 * Math.PI,
+							}) ?? ""
+						),
+				(exit) => exit.remove()
+			);
+
+
 	}, [data, radius]);
-	useEffect(() => {
-		console.log(`[${data.id}] Mounted CircularResourceGraph`);
-		return () => {
-			console.log(`[${data.id}] Unmounted CircularResourceGraph`);
-		};
-	}, []);
+	// useEffect(() => {
+	// 	console.log(`[${data.id}] Mounted CircularResourceGraph`);
+	// 	return () => {
+	// 		console.log(`[${data.id}] Unmounted CircularResourceGraph`);
+	// 	};
+	// }, []);
 
 	return (
 		<div style={{
@@ -268,8 +269,8 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 					textAlign: "center",
 				}}
 			>
-				{/*<Typography variant="subtitle2" component="div">*/}
-				{/*	{data.quantity.toFixed(2).toLocaleString()}*/}
+				{/*<Typography variant="h6" component="div">*/}
+				{/*	{`${(100*(data.quantity/data.limit)).toFixed(2).toLocaleString()}%`}*/}
 				{/*</Typography>*/}
 				{/*<Divider style={{margin: "2px 0"}}/>*/}
 				{/*<Typography variant="body2" component="div">*/}
@@ -322,11 +323,11 @@ const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxH
 		},
 		[data, raw_resource_lookup]
 	);
-	console.log("processedData:", processedData.map(d => d.id));
+	// console.log("processedData:", processedData.map(d => d.id));
 
 	return (
-		<Paper
-			elevation={1}
+		<Box
+			// elevation={1}
 			style={{
 				padding: 8,
 				width: "100%",
@@ -334,18 +335,21 @@ const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxH
 				overflowY: "auto",
 			}}
 		>
-			<Typography variant="h5" gutterBottom>
-				Raw Resource Usage
+			<Typography variant="h4" gutterBottom>
+				Resource Limit Guage
 			</Typography>
 			<Grid container spacing={2}>
 				{processedData.map((item) => (
 					<Grid size={{xs: 6, sm: 4, md: 4, lg: 4}} sx={{textAlign: "center"}} key={item.name}>
-						<MemoizedCircularResourceGraph width={70} data={item}/>
-						<Typography variant="body1">{item.name}</Typography>
+						<MemoizedCircularResourceGraph width={80} data={item}/>
+						<Typography variant="h5">{item.name}</Typography>
+						<Typography variant="h6" component="div">
+							{`${(100*(item.quantity/item.limit)).toFixed(2).toLocaleString()}%`}
+						</Typography>
 					</Grid>
 				))}
 			</Grid>
-		</Paper>
+		</Box>
 	);
 };
 

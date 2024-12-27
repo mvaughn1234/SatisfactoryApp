@@ -72,7 +72,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 				<img
 					width="48"
 					height="48"
-					src={`src/assets/images/items/${root_component.split(" ").join("-").toLowerCase()}_64.png`}
+					src={`public/assets/images/items/${root_component.split(" ").join("-").toLowerCase()}_64.png`}
 					alt={root_component}
 				/>
 			</Box>
@@ -114,7 +114,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 											<img
 												width="32"
 												height="32"
-												src={`src/assets/images/items/${ingredient.display_name
+												src={`public/assets/images/items/${ingredient.display_name
 													.split(" ").join("-")
 													.toLowerCase()}_64.png`}
 												alt={ingredient.display_name}
@@ -149,7 +149,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 											<img
 												width="32"
 												height="32"
-												src={`src/assets/images/items/${product.display_name
+												src={`public/assets/images/items/${product.display_name
 													.split(" ").join("-")
 													.toLowerCase()}_64.png`}
 												alt={product.display_name}

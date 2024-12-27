@@ -1,32 +1,16 @@
 import React, {useRef, useEffect, useState} from "react";
 import * as d3 from "d3";
 import ReactDOM from "react-dom/client";
+import useProcessedNodesAndLinks from "../../hooks/useProcessedNodesAndLinks.ts";
 import {useAppStaticData} from "../../store/AppStaticDataStore.tsx";
 import {OptimizationResult} from "../../types/ProductionLine.ts";
 import RecipeNode from "./RecipeNode.tsx";
 import raw_resource_lookup from "../../data/rawResourceLookup.ts";
+import {node_props, link_props} from "../../types/Other.ts";
 
 interface GraphProps {
 	data: OptimizationResult;
 	height?: number;
-}
-
-interface node_props {
-	fx: number | null;
-	fy: number | null;
-	x: number;
-	y: number;
-	id: number;
-	type: string;
-	rate: number;
-	building_name: string | null;
-}
-
-interface link_props {
-	source: node_props;
-	target: node_props;
-	item_id: number;
-	quantity: number;
 }
 
 const D3Graph: React.FC<GraphProps> = ({
@@ -36,7 +20,7 @@ const D3Graph: React.FC<GraphProps> = ({
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [width, setWidth] = useState<number>(0);
 
-	const {recipesComponentsDetail, itemsComponentsDetail, recipesGroupedDetail, loading} = useAppStaticData();
+	const {nodes, links} = useProcessedNodesAndLinks(data);
 
 	// Measure container width dynamically
 	const updateWidth = () => {
@@ -57,168 +41,6 @@ const D3Graph: React.FC<GraphProps> = ({
 		// Clear previous SVG content
 		d3.select(containerRef.current).select("svg").remove();
 
-		const transformData = (graph: OptimizationResult) => {
-			const nodes: node_props[] = [];
-			const links: link_props[] = [];
-
-			const addNode = (id: number, type: string, rate: number = 0, building_name: string | null = null) => {
-				if (!nodes.find((node) => node.id === id)) {
-					nodes.push({id, type, rate, building_name, x: 0, y: 0, fx: null, fy: null});
-				}
-			};
-
-			// Extract sets of items from raw usage, target outputs, and gather usedAsInput
-			const rawResources = new Set(graph.raw_resource_usage.map((res) => res.item_id));
-			const targetOutputs = new Set(graph.target_output.map((output) => output.item_id));
-
-			// 1. Precompute usedAsInput
-			const usedAsInput = new Set();
-			Object.entries(graph.production_line).forEach(([, {recipe_data}]) => {
-				recipe_data.ingredients?.forEach((input) => {
-					usedAsInput.add(input.id)
-				})
-			})
-
-			// 2. Add raw and target nodes
-			// rawResources.forEach((item_id) => addNode(`raw-${item_id}`, "raw"));
-			// rawResources.forEach((item_id) => addNode(item_id, "raw"));
-			rawResources.forEach((item_id) => {
-				const raw = graph.raw_resource_usage.find((r) => r.item_id === item_id);
-				addNode(item_id, "raw", raw?.total_quantity || 0);
-			});
-			targetOutputs.forEach((item_id) => {
-				const target = graph.target_output.find((t) => t.item_id === item_id);
-				addNode(item_id, "product", target?.amount || 0);
-			});
-
-			// 3. Add recipe nodes
-			Object.entries(graph.production_line).forEach(([, {recipe_data, scale}]) => {
-				addNode(recipe_data.id, "recipe", parseFloat(scale.toFixed(3)), (recipe_data.produced_in && recipe_data.produced_in.length > 0) ? recipe_data.produced_in[0].display_name : '');
-			})
-
-
-			// 4. Build links for inputs from producers or raw
-			const p_line_objects = Object.values(graph.production_line)
-			p_line_objects.forEach(({recipe_data: recipe_data_outer, scale}) => {
-				recipe_data_outer.ingredients?.forEach((ingredient) => {
-					// Find all producers of this input item
-					const producers = p_line_objects.filter(({recipe_data}) =>
-						recipe_data.products?.some((product) => product.id === ingredient.id)
-					)
-
-					const totalProduced = producers.reduce((sum, {recipe_data, scale}) => {
-						const out = recipe_data.products?.find((o) => o.id === ingredient.id)
-
-						return sum + (out ? (scale * out.amount * (60 / parseFloat(recipe_data.manufactoring_duration))) : 0)
-					}, 0)
-
-					// Compute how much the consumer needs
-					const requiredAmount = ingredient.amount * scale * (60 / parseFloat(recipe_data_outer.manufactoring_duration));
-
-					// For each producer of this ingredient
-					producers.forEach(({recipe_data, scale}) => {
-						const out = recipe_data.products?.find((o) => o.id === ingredient.id);
-						if (out) {
-							const producerQuantity = scale * out.amount * (60 / parseFloat(recipe_data.manufactoring_duration));
-							const fraction = producerQuantity / totalProduced;
-							const actualQuantity = fraction * requiredAmount;
-
-							const sourceNode = nodes.find((node) => node.id === recipe_data.id);
-							if (!sourceNode) {
-								throw new Error(`No source node found for recipe_data.id = ${recipe_data.id}`);
-							}
-
-							const targetNode = nodes.find((node) => node.id === recipe_data_outer.id);
-							if (!targetNode) {
-								throw new Error(`No target node found for recipe_data_outer.id = ${recipe_data_outer.id}`);
-							}
-
-							links.push({
-								source: sourceNode,
-								target: targetNode,
-								item_id: ingredient.id,
-								quantity: parseFloat(actualQuantity.toFixed(3)), // Use the computed actual quantity
-							});
-						}
-					});
-
-					// If it's a raw resource, link directly
-					if (rawResources.has(ingredient.id)) {
-						const sourceNode = nodes.find((node) => node.id === ingredient.id);
-						if (!sourceNode) {
-							throw new Error(`No source node found for recipe_data.id = ${ingredient.id}`);
-						}
-
-						const targetNode = nodes.find((node) => node.id === recipe_data_outer.id);
-						if (!targetNode) {
-							throw new Error(`No target node found for recipe_data_outer.id = ${recipe_data_outer.id}`);
-						}
-
-						links.push({
-							source: sourceNode,
-							// source: `raw-${ingredient.id}`,
-							target: targetNode,
-							item_id: ingredient.id,
-							quantity: parseFloat((scale * ingredient.amount * (60 / parseFloat(recipe_data_outer.manufactoring_duration))).toFixed(3)),
-						})
-					}
-
-				})
-			})
-
-			// 5. Handle outputs: target outputs or by-products
-			p_line_objects.forEach(({recipe_data, scale}) => {
-				recipe_data.products?.forEach((product) => {
-					const {id} = product;
-					// If this item is a target output
-					if (targetOutputs.has(id)) {
-						const sourceNode = nodes.find((node) => node.id === recipe_data.id);
-						if (!sourceNode) {
-							throw new Error(`No source node found for recipe_data.id = ${recipe_data.id}`);
-						}
-
-						const targetNode = nodes.find((node) => node.id === id);
-						if (!targetNode) {
-							throw new Error(`No target node found for recipe_data_outer.id = ${id}`);
-						}
-
-						links.push({
-							source: sourceNode,
-							target: targetNode,
-							item_id: id,
-							quantity: parseFloat((scale * product.amount * (60 / parseFloat(recipe_data.manufactoring_duration))).toFixed(3)),
-						});
-					} else if (!usedAsInput.has(id) && !rawResources.has(id)) {
-						// If not used as input and not a target output, it's a by-product
-						const byNodeId = id;
-						// const byNodeId = `by-${id}`;
-						addNode(byNodeId, "by-product");
-						const sourceNode = nodes.find((node) => node.id === recipe_data.id);
-						if (!sourceNode) {
-							throw new Error(`No source node found for recipe_data.id = ${recipe_data.id}`);
-						}
-
-						const targetNode = nodes.find((node) => node.id === byNodeId);
-						if (!targetNode) {
-							throw new Error(`No target node found for recipe_data_outer.id = ${byNodeId}`);
-						}
-
-						links.push({
-							source: sourceNode,
-							target: targetNode,
-							item_id: id,
-							quantity: parseFloat((scale * product.amount * (60 / parseFloat(recipe_data.manufactoring_duration))).toFixed(3)),
-						});
-					}
-					// If it's used as an input elsewhere but not a target,
-					// no need to create a link here directly—it's already handled above.
-				});
-			});
-
-			return {nodes, links};
-		};
-
-		const {nodes, links} = transformData(data);
 
 		// Create an SVG canvas
 		const svg = d3.select(containerRef.current)
@@ -281,8 +103,7 @@ const D3Graph: React.FC<GraphProps> = ({
 				}
 			})
 			.text((d) => {
-				const itemName = !loading ? itemsComponentsDetail.find((item) => item.id === d.item_id)?.display_name : "loading";
-				return `${itemName}: ${d.quantity || "Produced"}`;
+				return `${d.item_name}: ${d.quantity || "Produced"}`;
 			});
 
 		// Node drawing logic
@@ -320,12 +141,10 @@ const D3Graph: React.FC<GraphProps> = ({
 
 
 				// Find your data
-				const recipeGroup = recipesGroupedDetail.find((group) =>
-					group.standard?.id === d.id ||
-					group.alternate?.some((alt) => alt.id === d.id)
-				);
-				const standard_item_name = recipeGroup?.standard_product_display_name || 'Iron Plate';
-				const recipeName = recipesComponentsDetail.find((recipe) => recipe.id === d.id)?.display_name || "loading";
+				// const recipeGroup = recipesGroupedDetail.find((group) =>
+				// 	group.standard?.id === d.id ||
+				// 	group.alternate?.some((alt) => alt.id === d.id)
+				// );
 
 				// Now container.node() is a DOM node we can render React into
 				const containerNode = container.node() as HTMLDivElement;
@@ -333,9 +152,9 @@ const D3Graph: React.FC<GraphProps> = ({
 					const root = ReactDOM.createRoot(containerNode);
 					root.render(
 						<RecipeNode
-							name={recipeName}
+							name={d.recipeName}
 							rate={d.rate}
-							representative_item_name={standard_item_name}
+							representative_item_name={d.standard_item_name}
 							building_name={d.building_name}
 						/>
 					);
@@ -384,14 +203,11 @@ const D3Graph: React.FC<GraphProps> = ({
 					const rawName = raw_resource_lookup[rawId].display_name;
 					return `${rawName}`;
 				} else if (d.type === "product") {
-					const itemName = !loading ? itemsComponentsDetail.find((item) => item.id === d.id)?.display_name : "loading";
-					return `${itemName}: ${d.rate || "Produced"}`;
+					return `${d.item_name}: ${d.rate || "Produced"}`;
 				} else if (d.type === "by-product") {
-					// For by-products, try to find the item name
-					// const byId = parseInt(d.id.replace("by-", ""), 10);
-					const byId = d.id;
-					const itemName = !loading ? itemsComponentsDetail.find((item) => item.id === byId)?.display_name : "loading";
-					return itemName ? `By-Product: ${itemName}` : "By-Product";
+					// const byId = d.id;
+					// const itemName = !loading ? itemsComponentsDetail.find((item) => item.id === byId)?.display_name : "loading";
+					return d.item_name ? `By-Product: ${d.item_name}` : "By-Product";
 				}
 				return '';
 			});
@@ -541,7 +357,7 @@ const D3Graph: React.FC<GraphProps> = ({
 		// 	.alphaDecay(0.02) // slower decay for smoother animations
 		// 	.alphaMin(0.001); // let it run just a bit longer before stopping
 
-	}, [data, width, height, recipesComponentsDetail, itemsComponentsDetail, loading]);
+	}, [width, height, nodes, links]);
 
 	return <div ref={containerRef} style={{width: "100%", height}}/>;
 };

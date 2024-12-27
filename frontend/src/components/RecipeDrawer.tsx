@@ -1,4 +1,4 @@
-// GlobalRecipeDrawer.tsx
+// RecipeDrawer.tsx
 import {ChevronLeft as ChevronLeftIcon, ExpandLess, StarBorder} from '@mui/icons-material';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import TuneIcon from '@mui/icons-material/Tune';
@@ -35,7 +35,7 @@ const DrawerHeader = styled('div')(({theme}) => ({
 	justifyContent: 'flex-end',
 }));
 
-const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, globalRecipeDrawerWidth: number }> = ({open, drawerClose, globalRecipeDrawerWidth}) => {
+const RecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, globalRecipeDrawerWidth: number }> = ({open, drawerClose, globalRecipeDrawerWidth}) => {
 	const [configOpen, setConfigOpen] = useState(false);
 	const {loadingRecipeConfigs, recipeConfigs} = useRecipeConfigState();
 	const {loading, recipesComponentsDetail} = useAppStaticData();
@@ -138,4 +138,4 @@ const GlobalRecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, glo
 	);
 };
 
-export default GlobalRecipeDrawer;
+export default RecipeDrawer;
