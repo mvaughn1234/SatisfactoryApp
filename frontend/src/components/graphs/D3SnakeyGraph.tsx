@@ -1,14 +1,27 @@
-import {Box, Typography} from "@mui/material";
+import {
+	Box,
+	FormControlLabel,
+	FormGroup,
+	Slider,
+	Switch,
+	ToggleButton,
+	ToggleButtonGroup,
+	Typography
+} from "@mui/material";
+import Stack from "@mui/material/Stack";
 import {useTheme} from "@mui/material/styles";
 import useResizeObserver from "@react-hook/resize-observer";
 import * as d3 from "d3";
+import {SankeyGraph} from "d3-sankey";
+import {sankeyCircular, sankeyLeft, sankeyRight, sankeyCenter, sankeyJustify} from "d3-sankey-circular";
 import React, {useEffect, useMemo, useRef, useState} from "react";
-import raw_resource_lookup from "../../data/rawResourceLookup.ts";
-import ProcessNodesAndLinks from "../../hooks/useProcessedNodesAndLinks.ts";
-import {NodesAndLinksData, node_props, sankey_link_props, SankeyNodesAndLinksData} from "../../types/Other.ts";
+import useProcessedNodesAndLinks from "../../hooks/useProcessedNodesAndLinks.ts";
+import {NodesAndLinksData, SankeyNodesAndLinksData} from "../../types/Other.ts";
 import {OptimizationResult} from "../../types/ProductionLine.ts";
-import { sankey, SankeyGraph, sankeyCenter, sankeyJustify, sankeyLeft, sankeyRight, SankeyNode, SankeyLink, sankeyLinkHorizontal} from "d3-sankey";
-import { sankeyCircular } from "d3-sankey-circular";
+import FormatAlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
+import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
+import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
+import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
 
 interface D3SnakeyGraphContainerProps {
 	data: OptimizationResult;
@@ -19,14 +32,90 @@ interface D3SnakeyGraphProps {
 	data: OptimizationResult;
 	width: number;
 	maxHeight: number;
+	alignment: string;
+	nodePadding: number;
+	toggleHighlightEffect: boolean;
+}
+
+interface FixedNodeProps extends SankeyEnhancedNode {
+	id: number;
+	type: string;
+	rate: number;
+	recipeName: string;
+	standard_item_name: string;
+	building_name: string;
+	item_name: string;
+}
+
+interface FixedLinkProps {
+	source: FixedNodeProps;
+	target: FixedNodeProps;
+	item_name: string;
+	item_id: number;
+	quantity: number;
+	value: number;
+	optimal: string;
+	gradientId: string;
+	path: string,
+	circular: boolean,
+	y0: number,
+	y1: number,
+	width: number,
+	index: number,
+	circularLinkType?: "top" | "bottom",
+}
+
+interface FixedNodeAndLinkData {
+	nodes: FixedNodeProps[];
+	links: FixedLinkProps[];
 }
 
 
-const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({data, width, maxHeight}) => {
+const useProcessSankeyData = (processedData: NodesAndLinksData): SankeyNodesAndLinksData => {
+	const [processing, setProcessing] = useState<boolean>(true);
+	const [nodes, setNodes] = useState<SankeyInputNode[]>([]);
+	const [links, setLinks] = useState<SankeyInputLink[]>([])
+
+	useEffect(() => {
+		if (processedData.processing) {
+			if (!processing) setProcessing(true);
+			return;
+		} else if (processing) {
+			setProcessing(false);
+		}
+		console.log("data: ", processedData)
+		const newNodes = processedData.nodes.map((node) => {
+			return {
+				name: node.id.toString()
+			}
+		})
+		const newLinks = processedData.links.map((link) => {
+			return {
+				source: link.source.id.toString(),
+				target: link.target.id.toString(),
+				value: link.quantity,
+				optimal: "yes",
+			}
+		})
+
+		setNodes(newNodes);
+		setLinks(newLinks);
+		setProcessing(false);
+	}, [
+		processedData.processing,
+		processedData.nodes,
+		processedData.links,
+	]);
+
+	return {nodes, links, processing}
+}
+
+const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({data, width, maxHeight, alignment, nodePadding, toggleHighlightEffect}) => {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const theme = useTheme();
 	const linkColor = "source-target";
-	const processedData: NodesAndLinksData = ProcessNodesAndLinks(data)
+	const processedData: NodesAndLinksData = useProcessedNodesAndLinks(data)
+	const {nodes, links, processing}: SankeyNodesAndLinksData = useProcessSankeyData(processedData);
 	const categorySet = [
 		"Quantum Encoder",
 		"Particle Accelerator",
@@ -48,58 +137,54 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({data, width, maxHeight}) =
 	}, []);
 
 	useEffect(() => {
-		if (!svgRef.current || processedData.processing) return;
+		if (!svgRef.current || processing || processedData.processing) return;
 
 		const height = maxHeight;
-		const margin = {top: 20, right: 10, bottom: 20, left: 105};
+		const margin = {top: 20, right: 10, bottom: 20, left: 10};
+		const graphWidth = width - margin.right - margin.left;
+		const graphHeight = height - margin.top - margin.bottom;
 
 		// Create a SVG container.
-		const svg = d3.select<SVGSVGElement, SankeyNodesAndLinksData>(svgRef.current)
-			.attr('width', width)
-			.attr("height", height)
-			.attr("viewBox", [0, 0, width, height])
+		const svg = d3.select<SVGSVGElement, FixedNodeAndLinkData>(svgRef.current)
+			.attr('width', graphWidth)
+			.attr("height", graphHeight)
+			.attr("viewBox", [0, 0, graphWidth, graphHeight])
 			.attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;");
 		// .style("background", "#000")
 
 		const format = d3.format(",.3f");
-
+		const mappedAlignment = {
+			"sankeyLeft": sankeyLeft,
+			"sankeyRight": sankeyRight,
+			"sankeyCenter": sankeyCenter,
+			"sankeyJustify": sankeyJustify
+		}
 		// Constructs and configures a Sankey generator.
-		const sankeyGenerator = sankeyCircular<node_props, sankey_link_props>()
-			.nodeId(d => d.id)
-			.nodeAlign(sankeyJustify) // sankeyLeft, etc.
+		const sankeyGenerator = sankeyCircular()
+			.nodeId(d => d.name)
+			.nodeAlign(mappedAlignment[alignment]) // sankeyLeft, etc.
 			.nodeWidth(15)
-			// .nodePadding(5)
-			.nodePaddingRatio(0.7)
-			.extent([[1, 5], [width - 1, height - 5]])
+			.nodePaddingRatio(Math.max(nodePadding, 0.05))
+			.extent([[1, 5], [graphWidth - 1, graphHeight - 5]])
 			.circularLinkGap(5) // Customize the gap for circular links
 
-		// Applies it to the data. We make a copy of the nodes and links objects
-		// so as to avoid mutating the original.
-		// const {nodes, links} = sankeyGraph({
-		// 	nodes: processedData.nodes.map(d => Object.assign({}, d)),
-		// 	links: processedData.links.map(d => Object.assign({}, d))
-		// });
-		const mappedLinks: sankey_link_props[] = processedData.links.map((link) => {
-			return {
-				source: link.source.id,
-				target: link.target.id,
-				value: link.quantity,
-				item_id: link.item_id,
-				item_name: link.item_name
-			}
-		})
-		// console.log("Nodes and Links into Sankey: ", processedData.nodes, mappedLinks)
-		const graph: SankeyGraph<node_props, sankey_link_props> = {
+		const graph: SankeyGraph<SankeyInputNode, SankeyInputLink> = {
 			// nodes: processedData.nodes.map(d => Object.assign({}, d)),
 			// links: mappedLinks.map(d => Object.assign({}, d))
-			nodes: processedData.nodes.map(d => ({...d})),
-			links: mappedLinks.map(d => ({...d}))
+			nodes,
+			links
 		};
 
-		// console.log("Graph: ", graph)
-		const {nodes: layoutNodes, links: layoutLinks} = sankeyGenerator(graph);
+		const {nodes: layoutNodes, links: layoutLinks}: {
+			nodes: SankeyEnhancedNode[];
+			links: SankeyEnhancedLink[]
+		} = sankeyGenerator(graph);
 
-		const getNodeText = (node: node_props, type: string) => {
+		const depthExtent = d3.extent(layoutNodes, function (d) {
+			return d.depth;
+		});
+
+		const getNodeText = (node: FixedNodeProps, type: string) => {
 			if (type === "category") {
 				if (node.type === "recipe") {
 					// return node.building_name || "no building"
@@ -120,41 +205,68 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({data, width, maxHeight}) =
 
 		// Check if the group with class 'links' exists, if not, append it
 		if (svg.select(".links").empty()) {
-			svg.append("g").attr("class", "links");
+			svg.append("g").attr("class", "links")
+				.attr("transform", `translate(0, ${margin.top})`);
 		}
 
 		// Check if the group with class 'nodes' exists, if not, append it
 		if (svg.select(".nodes").empty()) {
-			svg.append("g").attr("class", "nodes");
+			svg.append("g").attr("class", "nodes")
+				.attr("transform", `translate(0, ${margin.top})`);
 		}
 
 		// Check if the group with class 'labels' exists, if not, append it
 		if (svg.select(".labels").empty()) {
-			svg.append("g").attr("class", "labels");
+			svg.append("g").attr("class", "labels")
+				.attr("transform", `translate(0, ${margin.top})`);
 		}
 
 		svg.call(
-			d3.zoom<SVGSVGElement, SankeyNodesAndLinksData>()
+			d3.zoom<SVGSVGElement, FixedNodeAndLinkData>()
 				.scaleExtent([0.1, 5])
-				.on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, SankeyNodesAndLinksData>) => {
+				.on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, FixedNodeAndLinkData>) => {
 					svg.select(".links").attr("transform", event.transform.toString());
 					svg.select(".nodes").attr("transform", event.transform.toString());
 					svg.select(".labels").attr("transform", event.transform.toString());
 				})
 		);
 
-		// Define the domain of the color scale dynamically based on data
-		const categories = Array.from(
-			new Set(processedData.nodes.map((node) => getNodeText(node, "category")))
-		);
-		// colorScale.domain(categories);
-
-		let defs = svg.select("defs");
+		let defs = svg.select<SVGDefsElement>("defs");
 		if (defs.empty()) {
-			defs = svg.append("defs");
+			defs = svg.append<SVGDefsElement>("defs");
 		}
 
-		layoutLinks.forEach((d) => {
+		const fixedNodes: FixedNodeProps[] = layoutNodes.map((node) => {
+			const id = Number(node.name)
+			const correspondingNode = processedData.nodes.find((pd_node) => pd_node.id === id)
+			return {
+				...node,
+				id: Number(node.name),
+				type: correspondingNode?.type || "node not found",
+				rate: correspondingNode?.rate || 0,
+				recipeName: correspondingNode?.recipeName || "node not found",
+				standard_item_name: correspondingNode?.standard_item_name || "node not found",
+				item_name: correspondingNode?.item_name || "node not found",
+				building_name: correspondingNode?.building_name || "node not found",
+			}
+		})
+
+		const fixedLinks: FixedLinkProps[] = layoutLinks.map((link) => {
+			const source_id = Number(link.source.name)
+			const target_id = Number(link.target.name)
+			const correspondingLink = processedData.links.find((pd_link) => pd_link.source.id === source_id && pd_link.target.id === target_id)
+			return {
+				...link,
+				item_name: correspondingLink?.item_name || "link not found",
+				item_id: correspondingLink?.item_id || 0,
+				quantity: correspondingLink?.quantity || 0,
+				gradientId: "",
+				source: fixedNodes.find((node) => node.id === source_id)!,
+				target: fixedNodes.find((node) => node.id === target_id)!,
+			}
+		})
+
+		fixedLinks.forEach((d) => {
 			if (d.gradientId === undefined || d.gradientId === "") {
 				const gradientId = `gradient-${d.source.type === "recipe" ? "recipe" : "item"}:${d.source.id}-${d.target.type === "recipe" ? "recipe" : "item"}:${d.target.id}`;
 
@@ -177,75 +289,217 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({data, width, maxHeight}) =
 			}
 		});
 
+		function highlightNodes(node: FixedNodeProps, name: string) {
+			let opacity = 0.3
+
+			if (node.name == name) {
+				opacity = 1;
+			}
+			node.sourceLinks.forEach(function (link) {
+				if (link.target.name == name) {
+					opacity = 1;
+				}
+			})
+			node.targetLinks.forEach(function (link) {
+				if (link.source.name == name) {
+					opacity = 1;
+				}
+				;
+			})
+
+			return opacity;
+		}
 
 		svg.select(".nodes")
-			.selectAll("rect")
-			.data(layoutNodes, d => d.id)
+			.selectAll<SVGPathElement, FixedNodeProps>("rect")
+			.data(fixedNodes, d => d.id)
 			.join(
-				enter => enter.append("rect")
+				enter => enter
+					.append("rect")
 					.attr("stroke", "#000")
 					.attr("fill", d => colorScale(getNodeText(d, "category")))
-					.attr("x", d => {
-						if (!d.x0) {
-							console.log("no d.x0: ", d)
-						}
-						return d.x0
-					})
-					.attr("y", d => d.y0)
-					.attr("width", d => d.x1 - d.x0)
-					.attr("height", d => d.y1 - d.y0)
-					.call(enter => enter.append("title").text(d => `${getNodeText(d, "name")}\n${format(d.value)} /min\n${format(d.rate)} x ${d.building_name}`)),
-				update => update
-					.transition().duration(750)
 					.attr("x", d => d.x0)
 					.attr("y", d => d.y0)
 					.attr("width", d => d.x1 - d.x0)
 					.attr("height", d => d.y1 - d.y0)
+					.on("mouseover", (_event, d) => {
+						if (toggleHighlightEffect) {
+							const thisId = d.id;
+
+							svg.select(".nodes").selectAll<SVGPathElement, FixedNodeProps>("rect")
+								.style("opacity", n => {
+									return n.id === thisId ||
+									n.sourceLinks.some(link => Number(link.target.name) === thisId) ||
+									n.targetLinks.some(link => Number(link.source.name) === thisId)
+										? 1 : 0.3;
+								});
+
+							svg.select(".links").selectAll<SVGPathElement, FixedLinkProps>("path")
+								.style("opacity", l => (l.source.id === thisId || l.target.id === thisId ? 1 : 0.3));
+
+							svg.select(".labels").selectAll<SVGTextElement, FixedNodeProps>("text")
+								.style("opacity", n => {
+									return n.id === thisId ||
+									n.sourceLinks.some(link => Number(link.target.name) === thisId) ||
+									n.targetLinks.some(link => Number(link.source.name) === thisId)
+										? 1 : 0.3;
+								});
+						}
+					})
+					.on("mouseout", () => {
+						if (toggleHighlightEffect) {
+							d3.select(".nodes").selectAll<SVGPathElement, FixedNodeProps>("rect").style("opacity", 1);
+							d3.select(".links").selectAll<SVGPathElement, FixedLinkProps>("path").style("opacity", 1);
+							d3.select(".labels").selectAll<SVGTextElement, FixedNodeProps>("text").style("opacity", 1);
+						}
+					})
+					.call(enter => enter.append("title").text(d => `${getNodeText(d, "name")}\n${format(d.rate)} x ${d.building_name}`))
+				,
+				update => update
 					.attr("fill", d => colorScale(getNodeText(d, "category")))
-					.select("title").text(d => `${getNodeText(d, "name")}\n${format(d.value)} /min\n${format(d.rate)} x ${d.building_name}`),
-				exit => exit.transition().duration(750).style("opacity", 0).remove()
+					// .transition().duration(200)
+					.attr("width", d => d.x1 - d.x0)
+					.attr("height", d => d.y1 - d.y0)
+					.on("mouseover", (_event, d) => {
+						if (toggleHighlightEffect) {
+							const thisId = d.id;
+
+							svg.select(".nodes").selectAll<SVGPathElement, FixedNodeProps>("rect")
+								.style("opacity", n => {
+									return n.id === thisId ||
+									n.sourceLinks.some(link => Number(link.target.name) === thisId) ||
+									n.targetLinks.some(link => Number(link.source.name) === thisId)
+										? 1 : 0.3;
+								});
+
+							svg.select(".links").selectAll<SVGPathElement, FixedLinkProps>("path")
+								.style("opacity", l => (l.source.id === thisId || l.target.id === thisId ? 1 : 0.3));
+
+							svg.select(".labels").selectAll<SVGTextElement, FixedNodeProps>("text")
+								.style("opacity", n => {
+									return n.id === thisId ||
+									n.sourceLinks.some(link => Number(link.target.name) === thisId) ||
+									n.targetLinks.some(link => Number(link.source.name) === thisId)
+										? 1 : 0.3;
+								});
+						}
+					})
+					.on("mouseout", () => {
+						if (toggleHighlightEffect) {
+							d3.select(".nodes").selectAll<SVGPathElement, FixedNodeProps>("rect").style("opacity", 1);
+							d3.select(".links").selectAll<SVGPathElement, FixedLinkProps>("path").style("opacity", 1);
+							d3.select(".labels").selectAll<SVGTextElement, FixedNodeProps>("text").style("opacity", 1);
+						}
+					})
+					.transition().duration(750)
+					.attr("x", d => d.x0)
+					.attr("y", d => d.y0)
+					.select("title").text(d => `${getNodeText(d, "name")}\n${format(d.rate)} x ${d.building_name}`)
+				,
+				exit => exit
+					.transition()
+					.duration(750)
+					.style("opacity", 0)
+					.remove()
 			);
 
 		// Update the links
 		svg.select(".links")
-			.selectAll("path")
-			.data(layoutLinks, d => `${d.source.id}-${d.target.id}`)
+			.selectAll<SVGPathElement, FixedLinkProps>("path")
+			.data(fixedLinks, d => `${d.source.id}-${d.target.id}`)
 			.join(
-				enter => enter.append("path")
+				enter => enter
+					.append("path")
 					.attr("fill", "none")
+					.call(enterSel => {
+						enterSel.append("title")
+					})
+					.attr("d", d => d.path)
 					.attr("stroke-opacity", 0.5)
 					.attr("stroke", d => {
+						if (d.circular) {
+							return "red"
+						}
 						if (linkColor === "source-target") {
-							if (!d.gradientId) {
-								console.log("D no gradient id: ", d, d.gradientId);
-							}
 							return `url(#${d.gradientId})`
-						};
+						}
 						if (linkColor === "source") return colorScale(getNodeText(d.source, "category"));
 						if (linkColor === "target") return colorScale(getNodeText(d.target, "category"));
 						return linkColor;
 					})
 					.attr("stroke-width", d => Math.max(1, d.width))
-					.attr("d", sankeyLinkHorizontal())
-					.call(enter => enter.append("title").text(d => `${getNodeText(d.source, "name")} → ${getNodeText(d.target, "name")}\n${format(d.value)} /min`)),
+					.on("mouseover", (_event, l) => {
+						if (toggleHighlightEffect) {
+							const source = l.source.id;
+							const target = l.target.id;
+
+							svg.select(".nodes").selectAll<SVGPathElement, FixedNodeProps>("rect")
+								.style("opacity", n => {
+									return n.id === source || n.id === target ? 1 : 0.3;
+								});
+
+							svg.select(".links").selectAll<SVGPathElement, FixedLinkProps>("path")
+								.style("opacity", l => (l.source.id === source && l.target.id === target ? 1 : 0.3));
+
+							svg.select(".labels").selectAll<SVGTextElement, FixedNodeProps>("text")
+								.style("opacity", n => {
+									return n.id === source || n.id === target ? 1 : 0.3;
+								});
+						}
+					})
+					.on("mouseout", () => {
+						if (toggleHighlightEffect) {
+							d3.select(".nodes").selectAll<SVGPathElement, FixedNodeProps>("rect").style("opacity", 1);
+							d3.select(".links").selectAll<SVGPathElement, FixedLinkProps>("path").style("opacity", 1);
+							d3.select(".labels").selectAll<SVGTextElement, FixedNodeProps>("text").style("opacity", 1);
+						}
+					})
+					.call(enterSel => enterSel.select("title").text(d => `${getNodeText(d.source, "name")} → ${d.item_name} → ${getNodeText(d.target, "name")}\n${format(d.value)} /min`))
+				,
 				update => update
-					.transition().duration(750)
+					.on("mouseover", (_event, l) => {
+						if (toggleHighlightEffect) {
+							const source = l.source.id;
+							const target = l.target.id;
+
+							svg.select(".nodes").selectAll<SVGPathElement, FixedNodeProps>("rect")
+								.style("opacity", n => {
+									return n.id === source || n.id === target ? 1 : 0.3;
+								});
+
+							svg.select(".links").selectAll<SVGPathElement, FixedLinkProps>("path")
+								.style("opacity", l => (l.source.id === source && l.target.id === target ? 1 : 0.3));
+
+							svg.select(".labels").selectAll<SVGTextElement, FixedNodeProps>("text")
+								.style("opacity", n => {
+									return n.id === source || n.id === target ? 1 : 0.3;
+								});
+						}
+					})
+					.on("mouseout", () => {
+						if (toggleHighlightEffect) {
+							d3.select(".nodes").selectAll<SVGPathElement, FixedNodeProps>("rect").style("opacity", 1);
+							d3.select(".links").selectAll<SVGPathElement, FixedLinkProps>("path").style("opacity", 1);
+							d3.select(".labels").selectAll<SVGTextElement, FixedNodeProps>("text").style("opacity", 1);
+						}
+					})
+					.transition()
+					.duration(750)
 					.attr("stroke-width", d => Math.max(1, d.width))
-					.attr("d", sankeyLinkHorizontal())
-					// .attr("stroke", d => {
-					// 	if (linkColor === "source-target") return `url(#${d.gradientId})`;
-					// 	if (linkColor === "source") return colorScale(getNodeText(d.source, "category"));
-					// 	if (linkColor === "target") return colorScale(getNodeText(d.target, "category"));
-					// 	return linkColor;
-					// })
-					.select("title").text(d => `${getNodeText(d.source, "name")} → ${getNodeText(d.target, "name")}\n${format(d.value)} /min`),
-				exit => exit.transition().duration(750).style("opacity", 0).remove()
+					.attr("d", d => d.path)
+					.select("title").text(d => `${getNodeText(d.source, "name")}  → ${d.item_name} → ${getNodeText(d.target, "name")}\n${format(d.value)} /min`)
+				,
+				exit => exit
+					.transition()
+					.duration(750)
+					.style("opacity", 0)
+					.remove()
 			);
 
 		// Update the labels
 		svg.select(".labels")
-			.selectAll("text")
-			.data(layoutNodes, d => d.id)
+			.selectAll<SVGTextElement, FixedNodeProps>("text")
+			.data(fixedNodes, d => d.id)
 			.join(
 				enter => enter.append("text")
 					.attr("dy", "0.35em")
@@ -261,10 +515,10 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({data, width, maxHeight}) =
 					.attr("y", d => (d.y1 + d.y0) / 2)
 					.attr("fill", theme.palette.text.primary)
 					.text(d => d.type === "recipe" ? "" : getNodeText(d, "name")),
-					// .text(d => d.type === "recipe" ? getNodeText(d, "category") : getNodeText(d, "name")),
+				// .text(d => d.type === "recipe" ? getNodeText(d, "category") : getNodeText(d, "name")),
 				exit => exit.transition().duration(750).style("opacity", 0).remove()
 			)
-	}, [processedData, width, maxHeight]);
+	}, [nodes, links, width, maxHeight, processing, alignment, nodePadding, toggleHighlightEffect]);
 
 	return <svg ref={svgRef}/>;
 }
@@ -272,6 +526,20 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({data, width, maxHeight}) =
 const D3SnakeyGraphContainer: React.FC<D3SnakeyGraphContainerProps> = ({data, maxHeight}) => {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [width, setWidth] = useState(300);
+	const [alignment, setAlignment] = React.useState('sankeyJustify');
+	const [nodePadding, setPadding] = React.useState(70)
+	const [toggleHighlightEffect, setToggleHighlightEffect] = React.useState(true)
+
+	const handleChangeHighlight = () => {
+		setToggleHighlightEffect(!toggleHighlightEffect)
+	}
+	const handleChange = (_event: React.ChangeEvent<HTMLInputElement>, newAlignment: string) => {
+		setAlignment(newAlignment);
+	};
+
+	const handlePaddingChange = (_event: React.ChangeEvent<HTMLInputElement>, newPadding: number) => {
+		setPadding(newPadding);
+	}
 
 	useResizeObserver(containerRef, (entry) => {
 		if (entry.contentBoxSize) {
@@ -279,6 +547,25 @@ const D3SnakeyGraphContainer: React.FC<D3SnakeyGraphContainerProps> = ({data, ma
 			setWidth(entry.contentRect.width);
 		}
 	});
+	const control = {
+		value: alignment,
+		onChange: handleChange,
+		exclusive: true,
+	};
+	const children = [
+		<ToggleButton value="sankeyLeft" key="left">
+			<FormatAlignLeftIcon/>
+		</ToggleButton>,
+		<ToggleButton value="sankeyCenter" key="center">
+			<FormatAlignCenterIcon/>
+		</ToggleButton>,
+		<ToggleButton value="sankeyRight" key="right">
+			<FormatAlignRightIcon/>
+		</ToggleButton>,
+		<ToggleButton value="sankeyJustify" key="justify">
+			<FormatAlignJustifyIcon/>
+		</ToggleButton>,
+	];
 
 	return (
 		<Box
@@ -291,12 +578,28 @@ const D3SnakeyGraphContainer: React.FC<D3SnakeyGraphContainerProps> = ({data, ma
 				// backgroundColor:
 			}}
 		>
-			<Typography variant="h4" gutterBottom>
-				Sankey Graph
-			</Typography>
-
+			<Stack direction="row" sx={{justifyContent: "space-between"}}>
+				<Stack direction="row" spacing={2} sx={{display: 'flex', width: 200, alignItems: 'center'}}>
+					<Slider aria-label="Node Padding" value={nodePadding} onChange={handlePaddingChange}/>
+					<Typography sx={{display: 'inline', width: 200}}>
+						Node Padding
+					</Typography>
+				</Stack>
+				<Typography variant="h4" gutterBottom>
+					Sankey Graph
+				</Typography>
+				<Stack direction="row" spacing={2} sx={{display: 'flex', width: 300, alignItems: 'center'}}>
+					<ToggleButtonGroup size="small" color={"primary"} {...control} aria-label="Small sizes">
+						{children}
+					</ToggleButtonGroup>
+					<FormGroup>
+						<FormControlLabel control={<Switch checked={toggleHighlightEffect} onChange={handleChangeHighlight} inputProps={{'aria-label': 'controlled'}} />} label="Mouseover Highlight" />
+					</FormGroup>
+				</Stack>
+			</Stack>
 			<div ref={containerRef}>
-				<D3SnakeyGraph data={data} width={width} maxHeight={maxHeight}/>
+				<D3SnakeyGraph data={data} width={width} maxHeight={maxHeight} alignment={alignment}
+											 nodePadding={nodePadding / 100} toggleHighlightEffect={toggleHighlightEffect}/>
 			</div>
 		</Box>
 	);

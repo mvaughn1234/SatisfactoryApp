@@ -7,7 +7,7 @@ const colors = {
 	"Water": "#2563AD",
 	"Nitrogen Gas": "#F7FAD7",
 	"Sulfur": "#FCDC48",
-	"Sam Ore": "#d946ef",
+	"SAM": "#d946ef",
 	"Bauxite": "#CD7660",
 	"Caterium Ore": "#E2B148",
 	"Copper Ore": "#BD4C39",
@@ -23,7 +23,7 @@ const raw_resource_lookup: raw_resource_lookup_props = {
 	157: { display_name: "Water", global_limit: 9007199254740991, gradient: generateThreeStopGradient(colors["Water"]) }, // Bright aqua to deep blue
 	158: { display_name: "Nitrogen Gas", global_limit: 12000, gradient: generateThreeStopGradient(colors["Nitrogen Gas"]) }, // Cyan blues transitioning into teal
 	159: { display_name: "Sulfur", global_limit: 10800, gradient: generateThreeStopGradient(colors["Sulfur"]) }, // Bright yellow to warm golden orange
-	160: { display_name: "Sam Ore", global_limit: 10200, gradient: generateThreeStopGradient(colors["Sam Ore"]) }, // Purplish-reds blending into deep maroon
+	160: { display_name: "SAM", global_limit: 10200, gradient: generateThreeStopGradient(colors["SAM"]) }, // Purplish-reds blending into deep maroon
 	161: { display_name: "Bauxite", global_limit: 12300, gradient: generateThreeStopGradient(colors["Bauxite"]) }, // Rich peach-orange to deeper earthy orange
 	162: { display_name: "Caterium Ore", global_limit: 15000, gradient: generateThreeStopGradient(colors["Caterium Ore"]) }, // Vibrant gold transitioning into deep amber
 	163: { display_name: "Copper Ore", global_limit: 36900, gradient: generateThreeStopGradient(colors["Copper Ore"]) }, // Warm copper transitioning into bronze

@@ -1,30 +1,58 @@
 import {useEffect, useState} from "react";
 import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
-import {NodesAndLinksData, node_props, link_props} from "../types/Other.ts";
+import {NodesAndLinksData, dg_node_props, link_props} from "../types/Other.ts";
 import {OptimizationResult} from "../types/ProductionLine.ts";
-
 
 const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData => {
 	const {recipesComponentsDetail, itemsComponentsDetail, recipesGroupedDetail, loading} = useAppStaticData();
 	const [processing, setProcessing] = useState<boolean>(true);
-	const [nodes, setNodes] = useState<node_props[]>([]);
-	const [links, setLinks] = useState<link_props[]>([])
+	const [nodes, setNodes] = useState<dg_node_props[]>([]);
+	const [links, setLinks] = useState<link_props[]>([]);
 
 	useEffect(() => {
 		setProcessing(true);
+
 		if (!loading && data && Object.entries(data).length > 0) {
-			const localNodes: node_props[] = [];
+			const localNodes: dg_node_props[] = [];
 			const localLinks: link_props[] = [];
 
-			const addNode = (id: number, type: string, rate: number = 0, building_name: string | null = null, item: boolean = false) => {
+			// These will track how much each recipe produces and how much of that production
+			// is consumed by other recipes. Later we can subtract consumption from production
+			// so that only leftover is linked to "product" or "by-product".
+			// Structure: producedByRecipe[recipeId][itemId] = total produced
+			//            consumedFromRecipe[recipeId][itemId] = total consumed from that recipe’s output
+			const producedByRecipe: Record<number, Record<number, number>> = {};
+			const consumedFromRecipe: Record<number, Record<number, number>> = {};
+
+			const addNode = (
+				id: number,
+				type: string,
+				rate: number = 0,
+				building_name: string | null = null,
+				item: boolean = false
+			) => {
 				if (!localNodes.find((node) => node.id === id)) {
-					const recipeGroup = !item ? recipesGroupedDetail?.find((group) =>
-						group.standard?.id === id ||
-						group.alternate?.some((alt) => alt.id === id)
-					) : null;
-					const standard_item_name = !item ? recipeGroup?.standard_product_display_name || 'loading' : 'item';
-					const recipeName = !item ? recipesComponentsDetail?.find((recipe) => recipe.id === id)?.display_name || "loading" : 'item';
-					const itemName = item ? itemsComponentsDetail?.find((item) => item.id === id)?.display_name || "loading" : 'Not Item';
+					const recipeGroup = !item
+						? recipesGroupedDetail?.find(
+							(group) =>
+								group.standard?.id === id ||
+								group.alternate?.some((alt) => alt.id === id)
+						)
+						: null;
+
+					const standard_item_name = !item
+						? recipeGroup?.standard_product_display_name || "loading"
+						: "item";
+
+					const recipeName = !item
+						? recipesComponentsDetail?.find((recipe) => recipe.id === id)
+						?.display_name || "loading"
+						: "item";
+
+					const itemName = item
+						? itemsComponentsDetail?.find((itm) => itm.id === id)?.display_name ||
+						"loading"
+						: "Not Item";
 
 					localNodes.push({
 						id,
@@ -37,37 +65,43 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 						fy: null,
 						recipeName,
 						standard_item_name,
-						item_name: itemName
+						item_name: itemName,
 					});
 				}
 			};
 
-			const addLink = (source: node_props, target: node_props, item_id: number, quantity: number) => {
-				const itemName = itemsComponentsDetail?.find((item) => item.id === item_id)?.display_name || "loading";
+			const addLink = (
+				source: dg_node_props,
+				target: dg_node_props,
+				item_id: number,
+				quantity: number
+			) => {
+				const itemName =
+					itemsComponentsDetail?.find((itm) => itm.id === item_id)?.display_name ||
+					"loading";
+
 				localLinks.push({
 					source,
 					target,
 					item_name: itemName,
 					item_id,
-					quantity
-				})
-			}
+					quantity,
+				});
+			};
 
-			// Extract sets of items from raw usage, target outputs, and gather usedAsInput
+			// 1. Identify which items are raw inputs, and which are final target outputs
 			const rawResources = new Set(data.raw_resource_usage.map((res) => res.item_id));
 			const targetOutputs = new Set(data.target_output.map((output) => output.item_id));
 
-			// 1. Precompute usedAsInput
-			const usedAsInput = new Set();
-			Object.entries(data.production_line).forEach(([, {recipe_data}]) => {
+			// 2. Track which items are used as inputs by any recipe
+			const usedAsInput = new Set<number>();
+			Object.entries(data.production_line).forEach(([, { recipe_data }]) => {
 				recipe_data.ingredients?.forEach((input) => {
-					usedAsInput.add(input.id)
-				})
-			})
+					usedAsInput.add(input.id);
+				});
+			});
 
-			// 2. Add raw and target localNodes
-			// rawResources.forEach((item_id) => addNode(`raw-${item_id}`, "raw"));
-			// rawResources.forEach((item_id) => addNode(item_id, "raw"));
+			// 3. Add nodes for raw resources and for target output items
 			rawResources.forEach((item_id) => {
 				const raw = data.raw_resource_usage.find((r) => r.item_id === item_id);
 				addNode(item_id, "raw", raw?.total_quantity || 0, null, true);
@@ -77,118 +111,196 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 				addNode(item_id, "product", target?.amount || 0, null, true);
 			});
 
-			// 3. Add recipe localNodes
-			Object.entries(data.production_line).forEach(([, {recipe_data, scale}]) => {
-				addNode(recipe_data.id, "recipe", parseFloat(scale.toFixed(3)), (recipe_data.produced_in && recipe_data.produced_in.length > 0) ? recipe_data.produced_in[0].display_name : '');
-			})
+			// 4. Add recipe nodes
+			const p_line_objects = Object.values(data.production_line);
+			p_line_objects.forEach(({ recipe_data, scale }) => {
+				addNode(
+					recipe_data.id,
+					"recipe",
+					parseFloat(scale.toFixed(3)),
+					recipe_data.produced_in?.[0]?.display_name || ""
+				);
+			});
 
+			// Initialize producedByRecipe and consumedFromRecipe so we can accumulate
+			p_line_objects.forEach(({ recipe_data }) => {
+				producedByRecipe[recipe_data.id] = {};
+				consumedFromRecipe[recipe_data.id] = {};
+			});
 
-			// 4. Build localLinks for inputs from producers or raw
-			const p_line_objects = Object.values(data.production_line)
-			p_line_objects.forEach(({recipe_data: recipe_data_outer, scale}) => {
-				recipe_data_outer.ingredients?.forEach((ingredient) => {
-					// Find all producers of this input item
-					const producers = p_line_objects.filter(({recipe_data}) =>
-						recipe_data.products?.some((product) => product.id === ingredient.id)
-					)
+			// 5. Build links for recipe->recipe consumption and accumulate consumption
+			p_line_objects.forEach(({ recipe_data: consumerRecipe, scale: consumerScale }) => {
+				consumerRecipe.ingredients?.forEach((ingredient) => {
+					// How much total is required by this consumer recipe?
+					const requiredAmount =
+						ingredient.amount *
+						consumerScale *
+						(60 / parseFloat(consumerRecipe.manufactoring_duration));
 
-					const totalProduced = producers.reduce((sum, {recipe_data, scale}) => {
-						const out = recipe_data.products?.find((o) => o.id === ingredient.id)
+					// Find all producers that produce this input item
+					const producers = p_line_objects.filter(({ recipe_data }) =>
+						recipe_data.products?.some((prod) => prod.id === ingredient.id)
+					);
 
-						return sum + (out ? (scale * out.amount * (60 / parseFloat(recipe_data.manufactoring_duration))) : 0)
-					}, 0)
+					// Sum total production (from all producers) for this item
+					const totalProduced = producers.reduce((sum, { recipe_data, scale }) => {
+						const out = recipe_data.products?.find((p) => p.id === ingredient.id);
+						return (
+							sum +
+							(out
+								? scale * out.amount * (60 / parseFloat(recipe_data.manufactoring_duration))
+								: 0)
+						);
+					}, 0);
 
-					// Compute how much the consumer needs
-					const requiredAmount = ingredient.amount * scale * (60 / parseFloat(recipe_data_outer.manufactoring_duration));
-
-					// For each producer of this ingredient
-					producers.forEach(({recipe_data, scale}) => {
-						const out = recipe_data.products?.find((o) => o.id === ingredient.id);
+					// Link each producer -> consumer with fraction of the required amount
+					producers.forEach(({ recipe_data: producerRecipe, scale: producerScale }) => {
+						const out = producerRecipe.products?.find((o) => o.id === ingredient.id);
 						if (out) {
-							const producerQuantity = scale * out.amount * (60 / parseFloat(recipe_data.manufactoring_duration));
-							const fraction = producerQuantity / totalProduced;
+							// Producer's total for this item
+							const producerQuantity =
+								producerScale *
+								out.amount *
+								(60 / parseFloat(producerRecipe.manufactoring_duration));
+
+							// Fraction of total production that goes to this consumer
+							const fraction = producerQuantity / totalProduced || 0;
 							const actualQuantity = fraction * requiredAmount;
 
-							const sourceNode = localNodes.find((node) => node.id === recipe_data.id);
+							// Accumulate consumption from that producer
+							if (!consumedFromRecipe[producerRecipe.id][ingredient.id]) {
+								consumedFromRecipe[producerRecipe.id][ingredient.id] = 0;
+							}
+							consumedFromRecipe[producerRecipe.id][ingredient.id] += actualQuantity;
+
+							// Add the link from the producer recipe node -> consumer recipe node
+							const sourceNode = localNodes.find((node) => node.id === producerRecipe.id);
+							const targetNode = localNodes.find((node) => node.id === consumerRecipe.id);
+
 							if (!sourceNode) {
-								throw new Error(`No source node found for recipe_data.id = ${recipe_data.id}`);
+								throw new Error(
+									`No source node found for producer recipe ${producerRecipe.id}`
+								);
 							}
-
-							const targetNode = localNodes.find((node) => node.id === recipe_data_outer.id);
 							if (!targetNode) {
-								throw new Error(`No target node found for recipe_data_outer.id = ${recipe_data_outer.id}`);
+								throw new Error(
+									`No target node found for consumer recipe ${consumerRecipe.id}`
+								);
 							}
 
-							addLink(sourceNode, targetNode, ingredient.id, parseFloat(actualQuantity.toFixed(3)), // Use the computed actual quantity
+							addLink(
+								sourceNode,
+								targetNode,
+								ingredient.id,
+								parseFloat(actualQuantity.toFixed(3))
 							);
 						}
 					});
 
-					// If it's a raw resource, link directly
+					// If it's a raw resource, link directly from raw node -> consumer recipe
 					if (rawResources.has(ingredient.id)) {
 						const sourceNode = localNodes.find((node) => node.id === ingredient.id);
+						const targetNode = localNodes.find((node) => node.id === consumerRecipe.id);
+
 						if (!sourceNode) {
-							throw new Error(`No source node found for recipe_data.id = ${ingredient.id}`);
+							throw new Error(`No source node found for raw item ${ingredient.id}`);
 						}
-
-						const targetNode = localNodes.find((node) => node.id === recipe_data_outer.id);
 						if (!targetNode) {
-							throw new Error(`No target node found for recipe_data_outer.id = ${recipe_data_outer.id}`);
+							throw new Error(
+								`No target node found for consumer recipe ${consumerRecipe.id}`
+							);
 						}
 
-						addLink(sourceNode, targetNode, ingredient.id, parseFloat((scale * ingredient.amount * (60 / parseFloat(recipe_data_outer.manufactoring_duration))).toFixed(3)))
+						addLink(
+							sourceNode,
+							targetNode,
+							ingredient.id,
+							parseFloat(requiredAmount.toFixed(3))
+						);
 					}
+				});
+			});
 
-				})
-			})
-
-			// 5. Handle outputs: target outputs or by-products
-			p_line_objects.forEach(({recipe_data, scale}) => {
+			// 6. Accumulate total production for each recipe -> item
+			p_line_objects.forEach(({ recipe_data, scale }) => {
 				recipe_data.products?.forEach((product) => {
-					const {id} = product;
-					// If this item is a target output
-					if (targetOutputs.has(id)) {
-						const sourceNode = localNodes.find((node) => node.id === recipe_data.id);
-						if (!sourceNode) {
-							throw new Error(`No source node found for recipe_data.id = ${recipe_data.id}`);
-						}
+					const totalProducedAmount =
+						scale * product.amount * (60 / parseFloat(recipe_data.manufactoring_duration));
 
-						const targetNode = localNodes.find((node) => node.id === id);
-						if (!targetNode) {
-							throw new Error(`No target node found for recipe_data_outer.id = ${id}`);
-						}
+					producedByRecipe[recipe_data.id][product.id] =
+						(producedByRecipe[recipe_data.id][product.id] || 0) + totalProducedAmount;
+				});
+			});
 
-						addLink(sourceNode, targetNode, id, parseFloat((scale * product.amount * (60 / parseFloat(recipe_data.manufactoring_duration))).toFixed(3)));
-					} else if (!usedAsInput.has(id) && !rawResources.has(id)) {
-						// If not used as input and not a target output, it's a by-product
-						const byNodeId = id;
-						// const byNodeId = `by-${id}`;
-						addNode(byNodeId, "by-product", 0, null, true);
-						const sourceNode = localNodes.find((node) => node.id === recipe_data.id);
-						if (!sourceNode) {
-							throw new Error(`No source node found for recipe_data.id = ${recipe_data.id}`);
-						}
+			// 7. Now create net links from each recipe to either "product" or "by-product"
+			p_line_objects.forEach(({ recipe_data }) => {
+				const sourceNode = localNodes.find((node) => node.id === recipe_data.id);
+				if (!sourceNode) {
+					throw new Error(`No node found for recipe ${recipe_data.id}`);
+				}
 
-						const targetNode = localNodes.find((node) => node.id === byNodeId);
-						if (!targetNode) {
-							throw new Error(`No target node found for recipe_data_outer.id = ${byNodeId}`);
-						}
+				recipe_data.products?.forEach((product) => {
+					const itemId = product.id;
+					const totalProducedAmount = producedByRecipe[recipe_data.id][itemId] || 0;
+					const totalConsumedFromThisRecipe = consumedFromRecipe[recipe_data.id][itemId] || 0;
+					const leftover = totalProducedAmount - totalConsumedFromThisRecipe;
 
-						addLink(sourceNode, targetNode, id, parseFloat((scale * product.amount * (60 / parseFloat(recipe_data.manufactoring_duration))).toFixed(3)));
+					// Only link leftover if > 0
+					if (leftover*100 > 1) {
+						// If item is a target output
+						if (targetOutputs.has(itemId)) {
+							// Link to the "product" node
+							const targetNode = localNodes.find((node) => node.id === itemId);
+							if (!targetNode) {
+								throw new Error(`No product node found for item ${itemId}`);
+							}
+							addLink(
+								sourceNode,
+								targetNode,
+								itemId,
+								parseFloat(leftover.toFixed(3))
+							);
+						}
+						// else if (!usedAsInput.has(itemId) && !rawResources.has(itemId)) {
+						else {
+							// If it's not used as input and not a raw resource, treat as by-product
+							// ensure we have a by-product node for it
+							const byNodeId = itemId;
+							let targetNode = localNodes.find((node) => node.id === byNodeId);
+							if (!targetNode) {
+								// create the by-product node if not exist
+								addNode(byNodeId, "by-product", leftover, null, true);
+								targetNode = localNodes.find((node) => node.id === byNodeId);
+							}
+
+							if (!targetNode) {
+								throw new Error(`No by-product node found for item ${byNodeId}`);
+							}
+							addLink(
+								sourceNode,
+								targetNode,
+								itemId,
+								parseFloat(leftover.toFixed(3))
+							);
+						}
+						// If it's used as input in another recipe but not a final product,
+						// we already have the recipe->recipe link above.
+						// (So we do NOT add anything additional here for that.)
 					}
-					// If it's used as an input elsewhere but not a target,
-					// no need to create a link here directly—it's already handled above.
 				});
 			});
 
 			setNodes(localNodes);
 			setLinks(localLinks);
 			setProcessing(false);
+		} else {
+			setNodes([]);
+			setLinks([]);
+			setProcessing(true);
 		}
-	}, [data, loading])
+	}, [data, loading]);
 
 	return {nodes, links, processing};
-
-}
+};
 
 export default useProcessedNodesAndLinks;

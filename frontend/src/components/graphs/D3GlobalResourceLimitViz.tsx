@@ -21,8 +21,9 @@ interface ArcData {
 	backgroundColor: string;
 	startAngle?: number;
 	endAngle: number;
+}
 
-	// Extra fields to store old angles for transitions
+interface ArcPathElement extends SVGPathElement {
 	_oldStartAngle?: number;
 	_oldEndAngle?: number;
 }
@@ -43,7 +44,6 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 		if (!svgRef.current) return;
 
 		const svg = d3.select<SVGSVGElement, ArcData>(svgRef.current);
-
 		// -------------------------------------------------------------------
 		// 1. Setup ARC GENERATORS
 		// -------------------------------------------------------------------
@@ -105,6 +105,14 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 		// -------------------------------------------------------------------
 		const arcsData = [data];
 
+		const oldAnglesMap = new Map<number, { endAngle: number }>();
+		arcsData.forEach((d) => {
+			if (!oldAnglesMap.has(d.id)) {
+				oldAnglesMap.set(d.id, { endAngle: 0.5 * 2 * Math.PI });
+			}
+		});
+
+
 		// -------------------------------------------------------------------
 		// 4. BACKGROUND ARC using .join()
 		// -------------------------------------------------------------------
@@ -146,7 +154,7 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 		// 6. FOREGROUND ARC (usage) with smooth transitions
 		// -------------------------------------------------------------------
 		svg
-			.selectAll<SVGPathElement, ArcData>(".foreground-arc")
+			.selectAll<ArcPathElement, ArcData>(".foreground-arc")
 			.data(arcsData, (d) => d.id)
 			.join(
 				// ENTER:
@@ -162,7 +170,8 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 						// Give it some initial angles (maybe zero-length)
 						.attr("d", (d) => fgArcGen({ ...d, startAngle: 0.5 * 2 * Math.PI, endAngle: 0.5 * 2 * Math.PI }) ?? "")
 						.each(function () {
-							this._oldStartAngle = 0.5 * 2 * Math.PI;
+							const path = this as ArcPathElement;
+							path._oldStartAngle = 0.5 * 2 * Math.PI;
 						})
 						.transition()
 						.duration(750)
@@ -172,18 +181,20 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 							return (t) => fgArcGen({ ...d, startAngle: 0.5 * 2 * Math.PI, endAngle: i(t) }) ?? "";
 						}).on("end", function (d) {
 						// When the transition is done, store the new angles
-						this._oldEndAngle = d.endAngle;
+						const path = this as ArcPathElement;
+						path._oldEndAngle = d.endAngle;
 					}),
 
 				// UPDATE:
-				update => {
+				update =>
 					update
 						.attr("transform", `translate(${radius},${radius})`)
 						.transition()
 						.duration(750)
 						.attrTween("d", function (d) {
+							const path = this as ArcPathElement;
 							// 1) Get old angles from the existing DOM-bound data
-							const oldEnd = this._oldEndAngle ?? (0.5 * 2 * Math.PI);
+							const oldEnd = path._oldEndAngle ?? (0.5 * 2 * Math.PI);
 							const iEnd = d3.interpolate(oldEnd, d.endAngle);
 
 							// console.log("UPDATE arc", d.id, {
@@ -199,9 +210,10 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 							}) ?? "";
 						})
 						.on("end", function (d) {
-							this._oldEndAngle = d.endAngle;
-						});
-				},
+							const path = this as ArcPathElement;
+							path._oldEndAngle = d.endAngle;
+						})
+				,
 
 				// EXIT
 				exit => exit.remove()

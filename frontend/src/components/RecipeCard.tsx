@@ -20,7 +20,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 																								 ingredients,
 																								 products,
 																								 single = false,
-																								 _manufactoring_duration,
 																							 }) => {
 	const [detailCard, setDetailCard] = useState(false);
 	const {isPreferred, setPreferred} = usePreferredRecipe(id);

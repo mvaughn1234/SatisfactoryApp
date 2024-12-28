@@ -7,10 +7,6 @@ export interface raw_resource_lookup_props {
 }
 
 export interface node_props {
-	fx: number | null;
-	fy: number | null;
-	x: number;
-	y: number;
 	id: number;
 	type: string;
 	rate: number;
@@ -18,6 +14,13 @@ export interface node_props {
 	standard_item_name: string;
 	building_name: string;
 	item_name: string;
+}
+
+export interface dg_node_props extends node_props{
+	fx: number | null;
+	fy: number | null;
+	x: number;
+	y: number;
 }
 
 export interface link_props {
@@ -28,15 +31,6 @@ export interface link_props {
 	quantity: number;
 }
 
-export interface sankey_link_props {
-	source: number;
-	target: number;
-	item_name: string;
-	item_id: number;
-	value: number;
-	gradient_id?: string;
-}
-
 export interface NodesAndLinksData {
 	nodes: node_props[];
 	links: link_props[];
@@ -44,8 +38,8 @@ export interface NodesAndLinksData {
 }
 
 export interface SankeyNodesAndLinksData {
-	nodes: node_props[];
-	links: sankey_link_props[];
+	nodes: SankeyInputNode[];
+	links: SankeyInputLink[];
 	processing: boolean;
 }
 

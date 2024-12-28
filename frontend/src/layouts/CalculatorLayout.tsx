@@ -4,15 +4,12 @@ import {styled, useTheme} from "@mui/material/styles";
 // import useMediaQuery from "@mui/material/useMediaQuery";
 import React, {useState} from 'react';
 import ActiveRecipeList from "../components/ActiveRecipeList.tsx";
-import RecipeDrawer from "../components/RecipeDrawer.tsx";
 import D3GlobalResourceLimitViz from "../components/graphs/D3GlobalResourceLimitViz.tsx";
-import D3Graph from "../components/graphs/D3Graph.tsx";
-import D3Graph4 from "../components/graphs/D3Graph4.tsx";
 import D3RawPieChartContainer from "../components/graphs/D3RawPieChart.tsx";
-import D3ResourceUseGraph from "../components/graphs/D3ResourceUseGraph.tsx";
 import D3SnakeyGraphContainer from "../components/graphs/D3SnakeyGraph.tsx";
 import D3NewResourceUseGraphContainer from "../components/graphs/NewD3ResourceUseGraph.tsx";
 import ProductionTargetsGroup from "../components/ProductionTargetsGroup.tsx";
+import RecipeDrawer from "../components/RecipeDrawer.tsx";
 import {useProductionLineState, useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
 
 

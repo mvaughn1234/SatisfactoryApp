@@ -6,7 +6,7 @@ import {useAppStaticData} from "../../store/AppStaticDataStore.tsx";
 import {OptimizationResult} from "../../types/ProductionLine.ts";
 import RecipeNode from "./RecipeNode.tsx";
 import raw_resource_lookup from "../../data/rawResourceLookup.ts";
-import {node_props, link_props} from "../../types/Other.ts";
+import {dg_node_props, link_props} from "../../types/Other.ts";
 
 interface GraphProps {
 	data: OptimizationResult;
@@ -107,9 +107,9 @@ const D3Graph: React.FC<GraphProps> = ({
 			});
 
 		// Node drawing logic
-		const nodeGroup = g.append("g").selectAll<SVGGElement, node_props>("g").data(nodes).enter().append("g");
+		const nodeGroup = g.append("g").selectAll<SVGGElement, dg_node_props>("g").data(nodes).enter().append("g");
 
-		nodeGroup.each(function (d: node_props) {
+		nodeGroup.each(function (d: dg_node_props) {
 			const group = d3.select(this);
 
 			if (d.type === "raw") {
@@ -212,20 +212,20 @@ const D3Graph: React.FC<GraphProps> = ({
 				return '';
 			});
 
-		const simulation = d3.forceSimulation<node_props>(nodes)
-			.force("link", d3.forceLink<node_props, link_props>(links)
+		const simulation = d3.forceSimulation<dg_node_props>(nodes)
+			.force("link", d3.forceLink<dg_node_props, link_props>(links)
 				.id(d => d.id)
 				.distance(200) // try 200 or more
 				.strength(0.2)
 			)
 			.force("charge", d3.forceManyBody().strength(-500))
-			.force("x", d3.forceX<node_props>((d) => {
+			.force("x", d3.forceX<dg_node_props>((d) => {
 				if (d.type === "raw") return 100;
 				if (d.type === "product") return width - 100;
 				return width / 2;
 			}).strength(0.25))
 			// .force("y", d3.forceY((d) => height / 2).strength(0.2))
-			.force("collide", d3.forceCollide<node_props>()
+			.force("collide", d3.forceCollide<dg_node_props>()
 				.radius(d => d.type === "recipe" ? 150 : 50)
 				.iterations(2) // More iterations can separate them better
 				.strength(1) // Increase the collision strength
@@ -352,7 +352,7 @@ const D3Graph: React.FC<GraphProps> = ({
 			nodeLabels.attr("x", (d) => d.x || 0).attr("y", (d) => (d.y || 0) - 12);
 		});
 
-		(simulation.force("link") as d3.ForceLink<node_props, link_props>).links(links);
+		(simulation.force("link") as d3.ForceLink<dg_node_props, link_props>).links(links);
 		// simulation
 		// 	.alphaDecay(0.02) // slower decay for smoother animations
 		// 	.alphaMin(0.001); // let it run just a bit longer before stopping

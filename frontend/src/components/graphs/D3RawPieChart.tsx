@@ -23,7 +23,10 @@ interface ProcessedDataResultPie {
 	name: string;
 	quantity: number;
 	color: string;
-	_current?: d3.PieArcDatum<ProcessedDataResultPie>;
+}
+
+interface PiePathElement extends SVGPathElement {
+	_current: d3.PieArcDatum<ProcessedDataResultPie>
 }
 
 const processData = (usage: OptimizationResult['raw_resource_usage'], lookup: raw_resource_lookup_props): ProcessedDataResultPie[] => {
@@ -68,7 +71,7 @@ const D3RawPieChart: React.FC<D3RawPieChart> = ({data, width, maxHeight}) => {
 		const innerRadius = outerRadius * 0.75;
 		// const tau = 2 * Math.PI;
 
-		const arc = d3.arc<ProcessedDataResultPie>()
+		const arc = d3.arc<d3.PieArcDatum<ProcessedDataResultPie>>()
 			.innerRadius(innerRadius)
 			.outerRadius(outerRadius);
 
@@ -76,30 +79,36 @@ const D3RawPieChart: React.FC<D3RawPieChart> = ({data, width, maxHeight}) => {
 
 		svg
 			.datum(processedData)
-			.selectAll("path")
-			.data(pie)
+			.selectAll<PiePathElement, d3.PieArcDatum<ProcessedDataResultPie>>("path")
+			.data(pie(processedData))
 			.join(
 				enter => enter
 					.append("path")
 					.attr("stroke", theme.palette.text.primary)
 					.attr("fill", (d) => d.data.color)
-					.attr("d", arc)
 					.each(function (d) {
-						this._current = d;
-					}).on("end", function (d) {
-						this._current = d;
-					}),
+						const pie = this as PiePathElement;
+						pie._current = d;
+					})
+					.attr("d", arc)
+					.on("end", function (d) {
+						const pie = this as PiePathElement;
+						pie._current = d;
+					})
+				,
 				update => update
 					.transition()
 					.duration(750)
 					.attr("fill", (d) => d.data.color)
 					.attr("stroke", theme.palette.text.primary)
 					.attrTween("d", function (d) {
+						const pie = this as PiePathElement;
 						// Now tween from startAngle → endAngle
-						const i = d3.interpolate(this._current, d);
+						const i = d3.interpolate(pie._current, d);
 						return (t) => arc(i(t)) ?? "";
 					}).on("end", function (d) {
-						this._current = d;
+						const pie = this as PiePathElement;
+						pie._current = d;
 					}),
 				exit => exit
 					.remove()
