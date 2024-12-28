@@ -1,5 +1,5 @@
+import {AppBar, IconButton, Toolbar, Typography} from '@mui/material';
 import React from 'react';
-import {AppBar, Toolbar, Typography, IconButton, Button, Box} from '@mui/material';
 import ColorModeIconDropdown from "../theme/ColorModeIconDropdown.tsx";
 
 const Header: React.FC = () => {

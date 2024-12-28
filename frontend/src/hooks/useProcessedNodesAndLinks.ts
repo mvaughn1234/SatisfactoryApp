@@ -24,6 +24,16 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 			const producedByRecipe: Record<number, Record<number, number>> = {};
 			const consumedFromRecipe: Record<number, Record<number, number>> = {};
 
+			function findNodeByIdAndType(
+				nodes: dg_node_props[],
+				numericId: number,
+				nodeType: string
+			): dg_node_props | undefined {
+				return nodes.find(
+					(node) => node.id === numericId && node.type === nodeType
+				);
+			}
+
 			const addNode = (
 				id: number,
 				type: string,
@@ -31,7 +41,7 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 				building_name: string | null = null,
 				item: boolean = false
 			) => {
-				if (!localNodes.find((node) => node.id === id)) {
+				if (!localNodes.find((node) => node.id === id && node.type === type)) {
 					const recipeGroup = !item
 						? recipesGroupedDetail?.find(
 							(group) =>
@@ -122,6 +132,7 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 				);
 			});
 
+			console.log("Nodes: ", localNodes);
 			// Initialize producedByRecipe and consumedFromRecipe so we can accumulate
 			p_line_objects.forEach(({ recipe_data }) => {
 				producedByRecipe[recipe_data.id] = {};
@@ -174,17 +185,17 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 							consumedFromRecipe[producerRecipe.id][ingredient.id] += actualQuantity;
 
 							// Add the link from the producer recipe node -> consumer recipe node
-							const sourceNode = localNodes.find((node) => node.id === producerRecipe.id);
-							const targetNode = localNodes.find((node) => node.id === consumerRecipe.id);
+							const sourceNode = findNodeByIdAndType(localNodes, producerRecipe.id, "recipe");
+							const targetNode = findNodeByIdAndType(localNodes, consumerRecipe.id, "recipe");
 
 							if (!sourceNode) {
 								throw new Error(
-									`No source node found for producer recipe ${producerRecipe.id}`
+									`No source node found for producer recipe ${producerRecipe.id}: ${producerRecipe}. Consumer Recipe ${consumerRecipe.id}: ${consumerRecipe}`
 								);
 							}
 							if (!targetNode) {
 								throw new Error(
-									`No target node found for consumer recipe ${consumerRecipe.id}`
+									`No target node found for consumer recipe ${consumerRecipe.id}: ${consumerRecipe}. Producer Recipe ${producerRecipe.id}: ${producerRecipe}`
 								);
 							}
 
@@ -199,8 +210,8 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 
 					// If it's a raw resource, link directly from raw node -> consumer recipe
 					if (rawResources.has(ingredient.id)) {
-						const sourceNode = localNodes.find((node) => node.id === ingredient.id);
-						const targetNode = localNodes.find((node) => node.id === consumerRecipe.id);
+						const sourceNode = findNodeByIdAndType(localNodes, ingredient.id, "raw");
+						const targetNode = findNodeByIdAndType(localNodes, consumerRecipe.id, "recipe");
 
 						if (!sourceNode) {
 							throw new Error(`No source node found for raw item ${ingredient.id}`);
@@ -215,7 +226,7 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 							sourceNode,
 							targetNode,
 							ingredient.id,
-							parseFloat(requiredAmount.toFixed(3))
+							parseFloat(sourceNode.rate.toFixed(3))
 						);
 					}
 				});
@@ -234,7 +245,8 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 
 			// 7. Now create net links from each recipe to either "product" or "by-product"
 			p_line_objects.forEach(({ recipe_data }) => {
-				const sourceNode = localNodes.find((node) => node.id === recipe_data.id);
+				const sourceNode = findNodeByIdAndType(localNodes, recipe_data.id, "recipe");
+
 				if (!sourceNode) {
 					throw new Error(`No node found for recipe ${recipe_data.id}`);
 				}
@@ -246,11 +258,11 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 					const leftover = totalProducedAmount - totalConsumedFromThisRecipe;
 
 					// Only link leftover if > 0
-					if (leftover*100 > 1) {
+					if (leftover * 100 > 1) {
 						// If item is a target output
 						if (targetOutputs.has(itemId)) {
 							// Link to the "product" node
-							const targetNode = localNodes.find((node) => node.id === itemId);
+							const targetNode = findNodeByIdAndType(localNodes, itemId, "product");
 							if (!targetNode) {
 								throw new Error(`No product node found for item ${itemId}`);
 							}
@@ -266,11 +278,11 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 							// If it's not used as input and not a raw resource, treat as by-product
 							// ensure we have a by-product node for it
 							const byNodeId = itemId;
-							let targetNode = localNodes.find((node) => node.id === byNodeId);
+							let targetNode = findNodeByIdAndType(localNodes, byNodeId, "by-product");
 							if (!targetNode) {
 								// create the by-product node if not exist
 								addNode(byNodeId, "by-product", leftover, null, true);
-								targetNode = localNodes.find((node) => node.id === byNodeId);
+								targetNode = findNodeByIdAndType(localNodes, byNodeId, "by-product");
 							}
 
 							if (!targetNode) {
@@ -289,6 +301,7 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 					}
 				});
 			});
+			console.log("links: ", localLinks)
 
 			setNodes(localNodes);
 			setLinks(localLinks);

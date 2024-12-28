@@ -17,23 +17,23 @@ class UpdateLiquids:
             # Create a lookup dictionary
             item_forms = {item.id: item.form for item in items}
 
-            # for ingredient in recipe_inputs:
-            #     form = item_forms.get(ingredient.item_id)
-            #     if form is not None and form != "RF_SOLID":
-            #         print("adjusting input:", ingredient.item_id,
-            #               "form:", form,
-            #               "amount:", ingredient.input_quantity,
-            #               "desired:", ingredient.input_quantity/1000)
-            #         ingredient.input_quantity = ingredient.input_quantity / 1000
-            #
-            # for ingredient in recipe_outputs:
-            #     form = item_forms.get(ingredient.item_id)
-            #     if form is not None and form != "RF_SOLID":
-            #         print("adjusting output:", ingredient.item_id,
-            #               "form:", form,
-            #               "amount:", ingredient.output_quantity,
-            #               "desired:", ingredient.output_quantity/1000)
-            #         ingredient.output_quantity = ingredient.output_quantity / 1000
+            for ingredient in recipe_inputs:
+                form = item_forms.get(ingredient.item_id)
+                if form is not None and form != "RF_SOLID":
+                    print("adjusting input:", ingredient.item_id,
+                          "form:", form,
+                          "amount:", ingredient.input_quantity,
+                          "desired:", ingredient.input_quantity/1000)
+                    ingredient.input_quantity = ingredient.input_quantity / 1000
+
+            for ingredient in recipe_outputs:
+                form = item_forms.get(ingredient.item_id)
+                if form is not None and form != "RF_SOLID":
+                    print("adjusting output:", ingredient.item_id,
+                          "form:", form,
+                          "amount:", ingredient.output_quantity,
+                          "desired:", ingredient.output_quantity/1000)
+                    ingredient.output_quantity = ingredient.output_quantity / 1000
 
             for ingredient in recipe_inputs:
                 form = item_forms.get(ingredient.item_id)

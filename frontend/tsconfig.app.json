@@ -28,5 +28,13 @@
   "include": ["src/**/*",
     "src/types/**/*"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/layouts/RecipeLayout.tsx",
+    "src/components/RecipeConfigTabs.tsx",
+    "src/components/RecipeDataGrid.tsx",
+    "src/components/RecipeDetailPage.tsx",
+    "src/components/HeaderRecipeChanges.tsx"
+  ]
 }

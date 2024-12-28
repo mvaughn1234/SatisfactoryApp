@@ -1,10 +1,9 @@
 import {Box, CssBaseline} from '@mui/material';
 import React from 'react';
 import {BrowserRouter as Router, Route, Routes} from "react-router-dom";
-import RecipeLayout from "./layouts/RecipeLayout.tsx";
-import AppTheme from "./theme/AppTheme.tsx";
 import CalculatorLayout from "./layouts/CalculatorLayout.tsx";
 import MainLayout from "./layouts/MainLayout.tsx";
+import AppTheme from "./theme/AppTheme.tsx";
 
 // Props interface for the App component
 interface AppProps {

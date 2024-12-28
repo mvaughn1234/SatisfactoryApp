@@ -2,11 +2,10 @@ import React, {useRef, useEffect, useState} from "react";
 import * as d3 from "d3";
 import ReactDOM from "react-dom/client";
 import useProcessedNodesAndLinks from "../../hooks/useProcessedNodesAndLinks.ts";
-import {useAppStaticData} from "../../store/AppStaticDataStore.tsx";
 import {OptimizationResult} from "../../types/ProductionLine.ts";
 import RecipeNode from "./RecipeNode.tsx";
 import raw_resource_lookup from "../../data/rawResourceLookup.ts";
-import {dg_node_props, link_props} from "../../types/Other.ts";
+import {dg_link_props, dg_node_props, NodesAndLinksData} from "../../types/Other.ts";
 
 interface GraphProps {
 	data: OptimizationResult;
@@ -20,7 +19,10 @@ const D3Graph: React.FC<GraphProps> = ({
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [width, setWidth] = useState<number>(0);
 
-	const {nodes, links} = useProcessedNodesAndLinks(data);
+	const {nodes, links, processing}: NodesAndLinksData = useProcessedNodesAndLinks(data);
+
+	const dg_nodes: dg_node_props[] = nodes.map((node) => ({...node, fx: null, fy: null, x: 0, y: 0}));
+	const dg_links: dg_link_props[] = links.map((link) => ({...link, source: dg_nodes.find((node) => node.id === link.source.id)!, target: dg_nodes.find((node) => node.id === link.target.id)!}));
 
 	// Measure container width dynamically
 	const updateWidth = () => {
@@ -36,7 +38,7 @@ const D3Graph: React.FC<GraphProps> = ({
 	}, []);
 
 	useEffect(() => {
-		if (!data || !containerRef.current || width === 0) return;
+		if (!data || !containerRef.current || width === 0 || processing) return;
 
 		// Clear previous SVG content
 		d3.select(containerRef.current).select("svg").remove();
@@ -73,9 +75,9 @@ const D3Graph: React.FC<GraphProps> = ({
 				})
 		);
 
-		const link: d3.Selection<SVGPathElement, link_props, SVGGElement, unknown> = g.append("g")
+		const link: d3.Selection<SVGPathElement, dg_link_props, SVGGElement, unknown> = g.append("g")
 			.selectAll("path")
-			.data(links)
+			.data(dg_links)
 			.enter()
 			.append("path")
 			.attr("fill", "none")
@@ -88,15 +90,15 @@ const D3Graph: React.FC<GraphProps> = ({
 
 		const linkLabels = g.append("g")
 			.selectAll("text")
-			.data(links)
+			.data(dg_links)
 			.enter()
 			.append("text")
 			.attr("fill", "#555")
 			.attr("font-size", "20px")
 			.attr("text-anchor", (d) => {
-				if (d.source.id in raw_resource_lookup) {
+				if ((d.source.id || 0) in raw_resource_lookup) {
 					return "end"
-				} else if (nodes.filter((node) => node.type === "product").map((node) => node.id).includes(d.target.id)) {
+				} else if (dg_nodes.filter((node) => node.type === "product").map((node) => node.id).includes((d.target.id || 0))) {
 					return "start"
 				} else {
 					return "middle"
@@ -107,7 +109,7 @@ const D3Graph: React.FC<GraphProps> = ({
 			});
 
 		// Node drawing logic
-		const nodeGroup = g.append("g").selectAll<SVGGElement, dg_node_props>("g").data(nodes).enter().append("g");
+		const nodeGroup = g.append("g").selectAll<SVGGElement, dg_node_props>("g").data(dg_nodes).enter().append("g");
 
 		nodeGroup.each(function (d: dg_node_props) {
 			const group = d3.select(this);
@@ -161,7 +163,7 @@ const D3Graph: React.FC<GraphProps> = ({
 				}
 
 			} else if (d.type === "by-product") {
-				// Draw a circle or triangle for by-product nodes
+				// Draw a circle or triangle for by-product dg_nodes
 				group
 					.append("path")
 					// For example, let's use a symbolTriangle
@@ -189,7 +191,7 @@ const D3Graph: React.FC<GraphProps> = ({
 
 		const nodeLabels = g.append("g")
 			.selectAll("text")
-			.data(nodes)
+			.data(dg_nodes)
 			.enter()
 			.append("text")
 			.attr("fill", "#000")
@@ -212,8 +214,8 @@ const D3Graph: React.FC<GraphProps> = ({
 				return '';
 			});
 
-		const simulation = d3.forceSimulation<dg_node_props>(nodes)
-			.force("link", d3.forceLink<dg_node_props, link_props>(links)
+		const simulation = d3.forceSimulation<dg_node_props>(dg_nodes)
+			.force("link", d3.forceLink<dg_node_props, dg_link_props>(dg_links)
 				.id(d => d.id)
 				.distance(200) // try 200 or more
 				.strength(0.2)
@@ -313,7 +315,7 @@ const D3Graph: React.FC<GraphProps> = ({
 		}
 
 
-		simulation.nodes(nodes).on("tick", () => {
+		simulation.nodes(dg_nodes).on("tick", () => {
 			// link.attr("d", calculateCurve);
 			// link.attr("d", d => shortenLink(d))
 			link.attr("d", d => {
@@ -352,12 +354,12 @@ const D3Graph: React.FC<GraphProps> = ({
 			nodeLabels.attr("x", (d) => d.x || 0).attr("y", (d) => (d.y || 0) - 12);
 		});
 
-		(simulation.force("link") as d3.ForceLink<dg_node_props, link_props>).links(links);
+		(simulation.force("link") as d3.ForceLink<dg_node_props, dg_link_props>).links(dg_links);
 		// simulation
 		// 	.alphaDecay(0.02) // slower decay for smoother animations
 		// 	.alphaMin(0.001); // let it run just a bit longer before stopping
 
-	}, [width, height, nodes, links]);
+	}, [width, height, dg_nodes, links]);
 
 	return <div ref={containerRef} style={{width: "100%", height}}/>;
 };

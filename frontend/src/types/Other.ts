@@ -31,9 +31,23 @@ export interface link_props {
 	quantity: number;
 }
 
+export interface dg_link_props {
+	source: dg_node_props;
+	target: dg_node_props;
+	item_name: string;
+	item_id: number;
+	quantity: number;
+}
+
 export interface NodesAndLinksData {
 	nodes: node_props[];
 	links: link_props[];
+	processing: boolean;
+}
+
+export interface DGNodesAndLinksData {
+	nodes: dg_node_props[];
+	links: dg_link_props[];
 	processing: boolean;
 }
 
