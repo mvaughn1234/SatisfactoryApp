@@ -14,7 +14,7 @@ For example:
 from flask import Blueprint, jsonify
 from app.scripts.insert_data import initialize_database
 
-api_blueprint = Blueprint('api', __name__)
+api_blueprint = Blueprint('data', __name__)
 
 
 @api_blueprint.route('/', methods=['GET'])

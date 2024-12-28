@@ -76,6 +76,7 @@ from sqlalchemy.orm import Session, sessionmaker, aliased
 from app.models import Item, AlienPowerFuel, Component, Sinkable, Consumable, NuclearFuel, PowerShard, RawResource, \
     Building, \
     Manufacturer, Extractor, Recipe, RecipeInputs, RecipeOutputs, RecipeCompatibleBuildings, Smelter
+from app.scripts.adjust_recipe_amounts_for_fluids import UpdateLiquids
 from app.utils import load_json_file, convert_data_types
 from config import Config
 
@@ -95,7 +96,6 @@ def truncate_tables(session: Session):
     """
     truncate_statements = [
         "truncate table alien_power_fuels restart identity cascade;",
-        "truncate table components restart identity cascade;",
         "truncate table sinkables restart identity cascade;",
         "truncate table consumables restart identity cascade;",
         "truncate table extractors restart identity cascade;",
@@ -106,12 +106,35 @@ def truncate_tables(session: Session):
         "truncate table recipe_compatible_buildings restart identity cascade;",
         "truncate table recipe_inputs restart identity cascade;",
         "truncate table recipe_outputs restart identity cascade;",
-        "truncate table items restart identity cascade;",
-        "truncate table recipes restart identity cascade;",
         "truncate table smelters restart identity cascade;",
-        "truncate table buildings restart identity cascade;"
+        "truncate table components restart identity cascade;",
+        "truncate table buildings restart identity cascade;",
+        "truncate table production_line_targets restart identity cascade;",
+        "truncate table items restart identity cascade;",
+        "truncate table production_lines restart identity cascade;",
+        "truncate table user_recipes restart identity cascade;",
+        "truncate table recipes restart identity cascade;",
+        "truncate table users restart identity cascade;",
     ]
-
+    # truncate_statements = [
+    #     "truncate table alien_power_fuels restart identity cascade;",
+    #     "truncate table components restart identity cascade;",
+    #     "truncate table sinkables restart identity cascade;",
+    #     "truncate table consumables restart identity cascade;",
+    #     "truncate table extractors restart identity cascade;",
+    #     "truncate table manufacturers restart identity cascade;",
+    #     "truncate table nuclear_fuels restart identity cascade;",
+    #     "truncate table power_shards restart identity cascade;",
+    #     "truncate table raw_resources restart identity cascade;",
+    #     "truncate table recipe_compatible_buildings restart identity cascade;",
+    #     "truncate table recipe_inputs restart identity cascade;",
+    #     "truncate table recipe_outputs restart identity cascade;",
+    #     "truncate table items restart identity cascade;",
+    #     "truncate table recipes restart identity cascade;",
+    #     "truncate table smelters restart identity cascade;",
+    #     "truncate table buildings restart identity cascade;"
+    # ]
+    #
     for statement in truncate_statements:
         session.execute(text(statement))
 
@@ -797,10 +820,14 @@ def initialize_database():
 
         # Commit the changes
         session.commit()
+
+        UpdateLiquids.adjust_recipe_amounts_for_fluids()
+
         print("Data inserted successfully!")
 
         populate_components_table(session)
         print("Components successfully populated!")
+
 
     except Exception as e:
         session.rollback()  # Rollback if any error occurs

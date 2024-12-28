@@ -58,10 +58,10 @@ def calculator():
         return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
 
 
-@calculator_blueprint.route('/update_liquids/', methods=['GET'])
-def update_liquids():
-    try:
-        UpdateLiquids.adjust_recipe_amounts_for_fluids()
-        return jsonify({"message": "success"})
-    except Exception as e:
-        return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
+# @calculator_blueprint.route('/update_liquids/', methods=['GET'])
+# def update_liquids():
+#     try:
+#         UpdateLiquids.adjust_recipe_amounts_for_fluids()
+#         return jsonify({"message": "success"})
+#     except Exception as e:
+#         return jsonify({'error': 'An error occurred', 'details': str(e)}), 500
