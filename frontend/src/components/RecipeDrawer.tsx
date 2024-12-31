@@ -21,10 +21,10 @@ const MemoizedRecipeListItem = React.memo(RecipeListItem, (prevProps, nextProps)
 	return (
 		prevProps.recipe === nextProps.recipe,
 		prevProps.conf_known === nextProps.conf_known,
-		prevProps.conf_excluded === nextProps.conf_excluded,
-		prevProps.conf_preferred === nextProps.conf_preferred
+		prevProps.conf_excluded === nextProps.conf_excluded
 	);
 });
+
 
 
 const DrawerHeader = styled('div')(({theme}) => ({
@@ -117,7 +117,6 @@ const RecipeDrawer: React.FC<{ open: boolean; drawerClose: () => void, globalRec
 								recipe={recipe}
 								conf_known={recipeConfigs[recipe.id].known || false}
 								conf_excluded={recipeConfigs[recipe.id].excluded || false}
-								conf_preferred={recipeConfigs[recipe.id].preferred || recipe.id}
 							/>
 						))
 						:

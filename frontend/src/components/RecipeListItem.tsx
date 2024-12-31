@@ -1,7 +1,7 @@
-import {Box, Checkbox, ListItem, Paper, Typography} from '@mui/material';
+import {Box, Checkbox, ListItem, Tooltip, Typography} from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import {styled} from '@mui/material/styles';
 import React, {useCallback, useState} from 'react';
+import {usePreferredRecipe} from "../hooks/usePreferredRecipe.ts";
 import {useRecipeConfigUpdate} from '../store/RecipeConfigStore.tsx';
 import {RecipeDetail} from "../types/Recipe.ts";
 
@@ -9,26 +9,14 @@ interface RecipeListItemProps {
 	recipe: RecipeDetail;
 	conf_known: boolean;
 	conf_excluded: boolean;
-	conf_preferred: number;
 }
-
-const Item = styled(Paper)(({theme}) => ({
-	backgroundColor: '#fff',
-	...theme.typography.body2,
-	padding: theme.spacing(1),
-	textAlign: 'center',
-	color: theme.palette.text.secondary,
-	...theme.applyStyles('dark', {
-		backgroundColor: '#1A2027',
-	}),
-}));
-
 
 const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf_excluded}) => {
 	const {updateRecipesKnown, updateRecipesExcluded} = useRecipeConfigUpdate();
 	const [known, setKnown] = useState<boolean>(conf_known);
 	const [excluded, setExcluded] = useState<boolean>(conf_excluded);
-	// const [preferred, setPreferred] = useState<number>(conf_preferred);
+	const {isPreferred, setPreferred, single} = usePreferredRecipe(recipe.id);
+
 
 	const handleLearnRecipe = useCallback(() => {
 		updateRecipesKnown(recipe.id);
@@ -40,33 +28,35 @@ const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf
 		setExcluded((prev) => !prev);
 	}, [updateRecipesExcluded, recipe.id]);
 
-	// const handlePreferredRecipe = useCallback(() => {
-	// 	updateRecipesPreferred(recipe.id);
-	// 	// setPreferred((prev) => !prev);
-	// }, [updateRecipesPreferred, recipe.id]);
+	const handlePreferredRecipe = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+		setPreferred(event.target.checked);
+	}, [setPreferred]);
 
 	return (
 		<ListItem disablePadding>
 			<Box sx={{flexGrow: 1}}>
-				<Grid container spacing={0}>
+				<Grid container spacing={0} columns={{xs: 14}}>
 					<Grid size={2}>
-						<Item>
+						<Tooltip title="Learned" placement="top" arrow>
 							{recipe.display_name.startsWith("Alternate") ?
-                  <Checkbox checked={known} onChange={handleLearnRecipe} size="small"/>
+								<Checkbox checked={known} onChange={handleLearnRecipe} size="small"/>
 								:
-                  <Checkbox checked={true} disabled onChange={handleLearnRecipe} size="small"/>
+								<Checkbox checked={true} disabled onChange={handleLearnRecipe} size="small"/>
 							}
-						</Item>
+						</Tooltip>
 					</Grid>
-					<Grid size={8} sx={{display: 'flex'}}>
-						<Item>
-							<Typography sx={{textAlign: 'left'}}>{recipe.display_name}</Typography>
-						</Item>
+					<Grid size={8} sx={{display: 'flex', alignItems: 'center'}}>
+						<Typography sx={{textAlign: 'left'}}>{recipe.display_name}</Typography>
 					</Grid>
 					<Grid size={2}>
-						<Item>
+						<Tooltip title="Excluded" placement="top" arrow>
 							<Checkbox checked={excluded} onChange={handleExcludeRecipe} size="small"/>
-						</Item>
+						</Tooltip>
+					</Grid>
+					<Grid size={2}>
+						<Tooltip title="Preferred" placement="top" arrow>
+							<Checkbox disabled={single} checked={isPreferred} onChange={handlePreferredRecipe} size="small"/>
+						</Tooltip>
 					</Grid>
 				</Grid>
 			</Box>

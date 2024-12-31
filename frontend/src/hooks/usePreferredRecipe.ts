@@ -16,6 +16,7 @@ export const usePreferredRecipe = (recipe_id: number) => {
 		}
 	}
 
+
 	// Identify the recipe group for the given recipe_id
 	const recipeGroupStandardFirst = recipesGroupedDetail.find((group) =>
 		group.standard?.id === recipe_id
@@ -33,7 +34,7 @@ export const usePreferredRecipe = (recipe_id: number) => {
 		};
 	}
 
-	const allRecipes = [recipeGroup.standard, ...(recipeGroup.alternate || [])];
+	const allRecipes = recipeGroup.standard ? [recipeGroup.standard, ...(recipeGroup.alternate || [])] : [...(recipeGroup.alternate || [])];
 
 	// Determine if this particular recipe is the currently preferred one.
 	// You might have a structure in recipeConfigs that tells you which recipe is preferred.
@@ -48,12 +49,11 @@ export const usePreferredRecipe = (recipe_id: number) => {
 		}
 	}, 0);
 	const isPreferred = currentPreferredId === recipe_id && (groupHasPreference === 1);
+	const single = allRecipes.length === 1;
 
 	const setPreferred = (preferred: boolean) => {
 		// If preferred is true, set this recipe as the preferred one for all recipes in the group
 		if (preferred) {
-			console.log('allRecipes: ', allRecipes)
-			console.log('recipeGroup: ', recipeGroup)
 			allRecipes.forEach((r) => r && updateRecipesPreferred(r.id, recipe_id));
 		} else {
 			// If not preferred, you might reset the preferred state, or set it to null
@@ -65,6 +65,7 @@ export const usePreferredRecipe = (recipe_id: number) => {
 
 	return {
 		isPreferred,
-		setPreferred
+		setPreferred,
+		single
 	};
 };

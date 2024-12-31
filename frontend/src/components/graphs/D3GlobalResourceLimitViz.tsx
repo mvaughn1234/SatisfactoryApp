@@ -1,4 +1,5 @@
 import {Box, Typography} from "@mui/material";
+import {useTheme} from "@mui/material/styles";
 import Grid from "@mui/material/Grid2";
 import * as d3 from "d3";
 import React, {useEffect, useMemo, useRef} from "react";
@@ -38,19 +39,22 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 	const ringWidth = 10;
 	// Example: the radius is half the width minus half the ring thickness
 	const radius = width / 2 - ringWidth / 2;
+	// const radius = (width / 2) - 2;
 	const svgRef = useRef<SVGSVGElement | null>(null);
-	// useEffect(() => { console.log('Mounted'); return () => console.log('Unmounted') }, [])
+
 	useEffect(() => {
 		if (!svgRef.current) return;
 
-		const svg = d3.select<SVGSVGElement, ArcData>(svgRef.current);
+		const svg = d3.select<SVGSVGElement, ArcData>(svgRef.current)
+
 		// -------------------------------------------------------------------
 		// 1. Setup ARC GENERATORS
 		// -------------------------------------------------------------------
+		const subtractor = 2 // not sure what this actually is but it was in the formula ...
 		const isOverLimit = data.quantity > data.limit;
 		const innerRadiusNominal = radius - ringWidth;
-		const innerRadius = isOverLimit ? innerRadiusNominal - 2 : innerRadiusNominal;
-		const outerRadius = isOverLimit ? radius - 2 : radius;
+		const innerRadius = isOverLimit ? innerRadiusNominal - subtractor : innerRadiusNominal;
+		const outerRadius = isOverLimit ? radius - subtractor : radius;
 
 		// Foreground (usage) arc
 		const fgArcGen = d3
@@ -126,6 +130,8 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 						.attr("class", "background-arc")
 						.attr("transform", `translate(${radius},${radius})`)
 						.attr("fill", (d) => d.backgroundColor)
+						// .attr("stroke", "#e6e6e6")
+						// .attr("stroke-width", 1)
 						// No transition if you don’t want the background to animate:
 						.attr("d", (d) =>
 							bgArcGen({
@@ -197,12 +203,6 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 							const oldEnd = path._oldEndAngle ?? (0.5 * 2 * Math.PI);
 							const iEnd = d3.interpolate(oldEnd, d.endAngle);
 
-							// console.log("UPDATE arc", d.id, {
-							// 	oldStart,
-							// 	oldEnd,
-							// 	newEnd: d.endAngle,
-							// });
-
 							return (t) => fgArcGen({
 								...d,
 								startAngle: 0.5 * 2 * Math.PI,  // or oldStart, if you prefer
@@ -257,13 +257,7 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 			);
 
 
-	}, [data, radius]);
-	// useEffect(() => {
-	// 	console.log(`[${data.id}] Mounted CircularResourceGraph`);
-	// 	return () => {
-	// 		console.log(`[${data.id}] Unmounted CircularResourceGraph`);
-	// 	};
-	// }, []);
+	}, [data, radius, data.backgroundColor]);
 
 	return (
 		<div style={{
@@ -309,6 +303,7 @@ const MemoizedCircularResourceGraph = React.memo(
 
 
 const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxHeight}) => {
+	const theme = useTheme();
 	const processedData = useMemo(
 		() => {
 			const usage = data.raw_resource_usage
@@ -324,7 +319,7 @@ const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxH
 					"#2196F3",
 					"#1976D2",
 				],
-				backgroundColor: "#fff3f3",
+				backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey[700] : theme.palette.grey[50],
 				endAngle:
 					0.5 * 2 * Math.PI +
 					Math.min(item.total_quantity / (lookup[item.item_id]?.global_limit || 0), 1) *
@@ -333,9 +328,8 @@ const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxH
 			}));
 			return mapped_data.sort((a, b) => b.quantity - a.quantity);
 		},
-		[data, raw_resource_lookup]
+		[data, raw_resource_lookup, theme.palette.mode]
 	);
-	// console.log("processedData:", processedData.map(d => d.id));
 
 	return (
 		<Box

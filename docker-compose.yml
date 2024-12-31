@@ -1,38 +1,22 @@
-# Satisfactory_App/docker-compose.yml
-
+version: '3.8'
 services:
 #  nginx:
-#    image: nginx:latest
+#    build:
+#      context: ./frontend
+#      dockerfile: Dockerfile
 #    container_name: nginx
 #    ports:
 #      - "80:80"
-#    volumes:
-#      - type: bind
-#        source: ./nginx.conf
-#        target: /etc/nginx/nginx.conf
-#        read_only: true
 #    depends_on:
-##      - frontend
 #      - backend
 #    networks:
 #      - app-network
-  nginx:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: nginx
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
 
   backend:
     build: ./backend
     container_name: satisfactory-backend
-    expose:
-      - "5000"
+    ports:
+      - "5000:5000"       # <== So that the host can directly hit port 5000
     depends_on:
       - db
     networks:
@@ -47,6 +31,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: dbPass
       POSTGRES_DB: satisfactory_app_db
+    ports:
+      - "5434:5432"                         # Expose PostgreSQL on port 5434
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

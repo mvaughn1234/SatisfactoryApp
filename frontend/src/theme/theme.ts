@@ -1,3 +1,4 @@
+// ./src/theme/theme.ts
 import {createTheme, type ThemeOptions} from '@mui/material/styles';
 import {colorSchemes, shadows, shape, typography} from "./customThemePrimitives.ts";
 

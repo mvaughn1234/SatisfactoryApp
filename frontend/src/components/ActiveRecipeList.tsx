@@ -4,14 +4,15 @@ import Divider from "@mui/material/Divider";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import Skeleton from "@mui/material/Skeleton";
-import {useTheme , styled} from "@mui/material/styles";
+import {useTheme, styled} from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import React, {useMemo} from 'react';
 import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
 import {useProductionLineState} from "../store/ProductionLineContext.tsx";
-import {RecipeDetail} from "../types/Recipe.ts";
+import {OptimizationResult} from "../types/ProductionLine.ts";
+import {RecipeDetail, RecipeItem} from "../types/Recipe.ts";
 import ActiveRecipeWrapper from "./ActiveRecipeWrapper.tsx";
 
 // Memoize ActiveRecipeWrapper to prevent unnecessary re-renders
@@ -20,7 +21,11 @@ const MemoizedActiveRecipeWrapper = React.memo(ActiveRecipeWrapper, (prevProps, 
 	return (
 		prevProps.selectedRecipe === nextProps.selectedRecipe &&
 		prevProps.remainingRecipes === nextProps.remainingRecipes &&
-		prevProps.recipeGroupName === nextProps.recipeGroupName
+		prevProps.recipeGroupName === nextProps.recipeGroupName &&
+		prevProps.throughputGauge === nextProps.throughputGauge &&
+		prevProps.totalThroughput === nextProps.totalThroughput &&
+		// prevProps.outputThroughput === nextProps.outputThroughput &&
+		prevProps.outputGauge === nextProps.outputGauge
 		// prevProps.onUpdate === nextProps.onUpdate
 	);
 });
@@ -40,6 +45,42 @@ const DrawerHeader = styled('div')(({theme}) => ({
 	justifyContent: 'center',
 }));
 
+const CalculateProductionThroughput = (data: OptimizationResult) => {
+	const totalProductThroughput = Object.values(data.production_line).reduce((count: number, productionTarget: {
+		recipe_data: RecipeDetail;
+		scale: number;
+	}) => {
+		if (productionTarget) {
+			const scale = productionTarget.scale;
+			const mD = productionTarget.recipe_data.manufactoring_duration;
+			const recipeProductItemVolume = productionTarget.recipe_data.products?.reduce((count: number, recipeProductItem: RecipeItem) => {
+				if (recipeProductItem) {
+					const mdFloat = parseFloat(mD)
+					return count + recipeProductItem.amount * scale * (60 / mdFloat);
+				} else {
+					return 0;
+				}
+			}, 0)
+			return recipeProductItemVolume ? count + recipeProductItemVolume : count;
+		} else {
+			return count;
+		}
+	}, 0);
+
+	const totalRawInput = data.raw_resource_usage.reduce((count: number, rawResource: {
+		item_id: number,
+		total_quantity: number,
+	}) => {
+		if (rawResource) {
+			return count + rawResource.total_quantity;
+		} else {
+			return count
+		}
+	}, 0);
+
+	return totalProductThroughput + totalRawInput
+}
+
 
 const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 																														 isRecipeDrawerOpen,
@@ -50,12 +91,20 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 	const {optimizedLineData, loadingOptimization} = useProductionLineState()
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+	// const [maxThrouhgput, setMaxThroughput] = useState<number>(0);
 
 	const activeRecipes = useMemo(() => {
 		if (loading || loadingOptimization || !optimizedLineData || !recipesGroupedDetail) return [];
 
+		let maxThroughput = 0;
+
+		const totalItemThroughput = CalculateProductionThroughput(optimizedLineData);
+
 		// const p_line_objects = Object.values(graph.production_line)
-		return Object.entries(optimizedLineData.production_line).map(([recipe_id, {recipe_data}]) => {
+		const nonNormalizedActiveRecipes = Object.entries(optimizedLineData.production_line).map(([recipe_id, {
+			recipe_data,
+			scale
+		}]) => {
 			const recipeGroupStandardFirst = recipesGroupedDetail.find((group) => group.standard?.id === recipe_data.id);
 			const recipeGroup = recipeGroupStandardFirst || recipesGroupedDetail.find((group) =>
 				group.alternate?.some((alt) => alt.id === recipe_data.id)
@@ -81,16 +130,70 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 				...recipeGroup.alternate?.filter((alt) => alt.id !== recipe_data.id) ?? [],
 			].filter(Boolean) : [];
 
+			const selectedPrimaryItem = selectedRecipe.products?.reduce((selectedProduct: ({
+				product: RecipeItem,
+				throughput: number
+			} | null), product: RecipeItem) => {
+				if (product) {
+					const currentThroughput = product.amount * 60 * scale / parseFloat(selectedRecipe.manufactoring_duration);
+					if (selectedProduct !== null) {
+						const selectedThroughput = selectedProduct["throughput"]
+						if (currentThroughput > selectedThroughput) {
+							return {
+								product: product,
+								throughput: currentThroughput
+							};
+						} else {
+							return selectedProduct;
+						}
+					} else {
+						return {
+							product: product,
+							throughput: currentThroughput,
+						}
+					}
+				} else {
+					return null
+				}
+			}, null)
+
+
+			const outputThroughput = optimizedLineData.target_output.find((target_output) => {
+				return selectedPrimaryItem?.product.id === target_output.item_id
+			}) ? (selectedPrimaryItem?.throughput || 0) : 0
+
+			const selectedOutputGauge = outputThroughput ? outputThroughput / totalItemThroughput : 0;
+			const selectedThroughput = selectedPrimaryItem ? (selectedPrimaryItem["throughput"] - outputThroughput) / totalItemThroughput : 0;
+			maxThroughput = selectedThroughput > maxThroughput ? selectedThroughput : maxThroughput;
+			maxThroughput = selectedOutputGauge > maxThroughput ? selectedOutputGauge : maxThroughput;
+			console.log("SOG, OT, ST", selectedOutputGauge, outputThroughput, selectedThroughput)
 			return {
 				selectedRecipe,
 				remainingRecipes,
 				recipeGroupName: recipeGroup.standard_product_display_name,
+				throughputGauge: selectedThroughput,
+				totalThroughput: selectedPrimaryItem?.throughput || 0,
+				// outputThroughput: outputThroughput,
+				outputGauge: selectedOutputGauge,
 			};
 		}).filter((item): item is {
 			selectedRecipe: RecipeDetail;
 			remainingRecipes: (RecipeDetail | undefined)[];
 			recipeGroupName: string;
+			throughputGauge: number;
+			totalThroughput: number;
+			// outputThroughput: number;
+			outputGauge: number
 		} => item !== null); // Remove null entries
+
+		return nonNormalizedActiveRecipes.map((nonNormalizedActiveRecipe) => {
+			console.log("throughputGauge, outputGauge", nonNormalizedActiveRecipe.throughputGauge / maxThroughput, nonNormalizedActiveRecipe.outputGauge / maxThroughput)
+			return {
+				...nonNormalizedActiveRecipe,
+				throughputGauge: nonNormalizedActiveRecipe.throughputGauge / maxThroughput,
+				outputGauge: nonNormalizedActiveRecipe.outputGauge / maxThroughput
+			}
+		}).sort((a, b) => b.totalThroughput- a.totalThroughput)
 	}, [optimizedLineData, recipesGroupedDetail]);
 
 	return (
@@ -152,7 +255,15 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 			>
 
 				{
-					!(loading && loadingOptimization) ? activeRecipes.map(({ selectedRecipe, remainingRecipes, recipeGroupName }) => (
+					!(loading && loadingOptimization && (!activeRecipes || activeRecipes?.length === 0)) ? activeRecipes.map(({
+																																																											selectedRecipe,
+																																																											remainingRecipes,
+																																																											recipeGroupName,
+																																																											throughputGauge,
+																																																											totalThroughput,
+																																																											// outputThroughput,
+																																																											outputGauge
+																																																										}) => (
 							<ListItem
 								key={selectedRecipe.id}
 								disablePadding
@@ -166,6 +277,10 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 									selectedRecipe={selectedRecipe}
 									remainingRecipes={remainingRecipes}
 									recipeGroupName={recipeGroupName}
+									throughputGauge={throughputGauge}
+									totalThroughput={totalThroughput}
+									// outputThroughput={outputThroughput}
+									outputGauge={outputGauge}
 								/>
 							</ListItem>
 						))

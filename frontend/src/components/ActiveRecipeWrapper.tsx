@@ -12,6 +12,10 @@ interface ActiveRecipeWrapperProps {
 	selectedRecipe: RecipeDetail;
 	remainingRecipes: (RecipeDetail | undefined)[];
 	recipeGroupName: string;
+	throughputGauge: number;
+	totalThroughput: number;
+	// outputThroughput: number;
+	outputGauge: number;
 	// onUpdate: (recipeId: number, statusType: string) => void;
 }
 
@@ -19,6 +23,10 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
 																																	 selectedRecipe,
 																																	 remainingRecipes,
 																																	 recipeGroupName,
+																																	 throughputGauge,
+																																	 totalThroughput,
+																																	 // outputThroughput,
+																																	 outputGauge
 																																 }) => {
 	const [expanded, setExpanded] = useState<boolean>(false);
 
@@ -39,6 +47,10 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
 						ingredients={selectedRecipe.ingredients}
 						products={selectedRecipe.products}
 						manufactoring_duration={selectedRecipe.manufactoring_duration}
+						throughputGauge={throughputGauge}
+						totalThroughput={totalThroughput}
+						outputGauge={outputGauge}
+						// outputThroughput={outputThroughput}
 					/>
 					{expanded ? <ExpandLess/> : <ExpandMore/>}
 				</ListItemButton>
@@ -75,8 +87,11 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
             class_name={selectedRecipe.class_name}
             ingredients={selectedRecipe.ingredients}
             products={selectedRecipe.products}
-						single={true}
             manufactoring_duration={selectedRecipe.manufactoring_duration}
+            throughputGauge={throughputGauge}
+            totalThroughput={totalThroughput}
+            // outputThroughput={outputThroughput}
+            outputGauge={outputGauge}
         />
 	)
 		;

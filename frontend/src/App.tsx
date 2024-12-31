@@ -1,4 +1,4 @@
-import {Box, CssBaseline} from '@mui/material';
+import {Box, CssBaseline, useTheme} from '@mui/material';
 import React from 'react';
 import {BrowserRouter as Router, Route, Routes} from "react-router-dom";
 import CalculatorLayout from "./layouts/CalculatorLayout.tsx";
@@ -11,6 +11,8 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({disableCustomTheme = false}) => {
+	const theme = useTheme();
+
 	return (
 		<AppTheme disableCustomTheme={disableCustomTheme}>
 			<>

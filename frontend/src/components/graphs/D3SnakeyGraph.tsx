@@ -83,7 +83,6 @@ const useProcessSankeyData = (processedData: NodesAndLinksData): SankeyNodesAndL
 		} else if (processing) {
 			setProcessing(false);
 		}
-		console.log("data: ", processedData)
 		const newNodes = processedData.nodes.map((node) => {
 			return {
 				name: `${node.type}:${node.id.toString()}`

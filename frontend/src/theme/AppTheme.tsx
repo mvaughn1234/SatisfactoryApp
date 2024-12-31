@@ -1,3 +1,4 @@
+// ./src/theme/AppTheme.tsx
 import * as React from 'react';
 import {ThemeProvider, createTheme} from '@mui/material/styles';
 import type {ThemeOptions} from '@mui/material/styles';
@@ -27,7 +28,7 @@ export default function AppTheme({
 	// 	return <React.Fragment>{children}</React.Fragment>;
 	// }
 	return (
-		<ThemeProvider theme={theme2} disableTransitionOnChange>
+		<ThemeProvider theme={theme2} disableTransitionOnChange noSsr>
 			{children}
 		</ThemeProvider>
 	);

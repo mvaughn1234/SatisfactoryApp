@@ -151,9 +151,11 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					})
 					.attr("width", 0)
 					.attr("height", yScale.bandwidth())
-					// .attr("stroke", "#000")
-					.attr("rx", 4)
-					.attr("ry", 4)
+					.attr("stroke", (d) => d.gradient[2])
+					.attr("stroke-width", 1)
+					// .attr("rx", 4)
+					// .attr("ry", 4)
+					.attr("borderColor", "black")
 					// .attr("fill", (d) => `url(#${d.gradientId})`)
 					.attr("fill", (d) => d.gradient[1])
 					.attr("filter", (d) => d.name === "Sam Ore" ? "url(#glow-effect)" : "url(#drop-shadow)")
@@ -163,6 +165,11 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 				update => update
 					.transition()
 					.duration(750)
+					.attr("rx", 0)
+					.attr("ry", 0)
+					.attr("stroke", (d) => d.gradient[2])
+					.attr("stroke-width", 1)
+
 					.attr("y", (d) => {
 						const yVal = yScale(d.name);
 						return yVal !== undefined ? yVal : 0;
@@ -221,7 +228,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					.attr("fill", (d) => {
 						const barWidth = xScale(d.quantity) - margin.left;
 						const textWidth = (d.quantity.toFixed(2).length + 4.5) * 7.5; // + 4 for ' / min', 7.5 corresponding to 14px font size
-						return barWidth > textWidth ? "white" : theme.palette.text.primary; // White for inside, dark for outside
+						return barWidth > textWidth ? (d.name === "Nitrogen Gas" ? theme.palette.text.primary : "white") : theme.palette.text.primary; // White for inside, dark for outside
 					})
 					.attr("font-size", "14px")
 					.attr("font-weight", "bold") // Optional: Make it bold for better visibility
@@ -242,7 +249,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					.attr("fill", (d) => {
 						const barWidth = xScale(d.quantity) - margin.left;
 						const textWidth = (d.quantity.toFixed(2).length + 4.5) * 7.5; // + 4 for ' / min', 7.5 corresponding to 14px font size
-						return barWidth > textWidth ? "white" : theme.palette.text.primary; // White for inside, dark for outside
+						return barWidth > textWidth ? (d.name === "Nitrogen Gas" ? theme.palette.text.primary : "white") : theme.palette.text.primary; // White for inside, dark for outside
 					})
 					.text((d) => `${d.quantity.toFixed(2).toLocaleString()} / min`),
 				exit => exit

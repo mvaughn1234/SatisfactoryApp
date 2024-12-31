@@ -105,7 +105,7 @@ const D3RawPieChart: React.FC<D3RawPieChart> = ({data, width, maxHeight}) => {
 						const pie = this as PiePathElement;
 						// Now tween from startAngle → endAngle
 						const i = d3.interpolate(pie._current, d);
-						return (t) => arc(i(t)) ?? "";
+						return (t) => arc(i(t)) ?? "0,0";
 					}).on("end", function (d) {
 						const pie = this as PiePathElement;
 						pie._current = d;

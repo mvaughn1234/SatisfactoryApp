@@ -132,7 +132,6 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 				);
 			});
 
-			console.log("Nodes: ", localNodes);
 			// Initialize producedByRecipe and consumedFromRecipe so we can accumulate
 			p_line_objects.forEach(({ recipe_data }) => {
 				producedByRecipe[recipe_data.id] = {};
@@ -301,7 +300,6 @@ const useProcessedNodesAndLinks = (data: OptimizationResult): NodesAndLinksData 
 					}
 				});
 			});
-			console.log("links: ", localLinks)
 
 			setNodes(localNodes);
 			setLinks(localLinks);

@@ -3,21 +3,22 @@
 # In order to preserve the development configurations while adding the docker-compose
 # for the build environment
 services:
-  frontend:
+  frontend_dev:
     build: ./frontend
-    container_name: satisfactory-frontend
+    container_name: satisfactory-frontend_dev
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
 #    command: npm run dev -- --host       Commented this out because there's already a CMD in the Dockerfile
     networks:
-      - app-network   # Frontend on app-network
+      - app-network_dev   # Frontend on app-network
 
-  backend:
+  backend_dev:
     build: ./backend
+    container_name: satisfactory-backend_dev
     ports:
-      - "5000:5000"
+      - "5050:5000"
     volumes:
       - ./backend:/app  # Ensure this points to your backend directory
     env_file:
@@ -26,27 +27,27 @@ services:
       - APP_ENV=local
       - FLASK_ENV=development
     depends_on:
-      - db
+      - db_dev
     networks:
-      - app-network
+      - app-network_dev
 
-  db:
+  db_dev:
     image: postgres:17                     # Use the official PostgreSQL image
-    container_name: satisfactory_app_db         # Name of the PostgreSQL container
+    container_name: satisfactory_app_db_dev         # Name of the PostgreSQL container
     environment:
       POSTGRES_USER: postgres               # Default PostgreSQL user
       POSTGRES_PASSWORD: dbPass           # Password for the user
-      POSTGRES_DB: satisfactory_app_db                   # Default database created on startup
+      POSTGRES_DB: satisfactory_app_db_dev                   # Default database created on startup
     ports:
-      - "5434:5432"                         # Expose PostgreSQL on port 5434
+      - "5435:5432"                         # Expose PostgreSQL on port 5434
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # Persist database data
+      - postgres_data_dev:/var/lib/postgresql/data  # Persist database data
     networks:
-      - app-network  # Ensure it's on the same network as the backend
+      - app-network_dev  # Ensure it's on the same network as the backend
 
 networks:
-  app-network:  # Define a custom network for better service communication
+  app-network_dev:  # Define a custom network for better service communication
     driver: bridge
 
 volumes:
-  postgres_data:                            # Define a named volume for database persistence
+  postgres_data_dev:                            # Define a named volume for database persistence

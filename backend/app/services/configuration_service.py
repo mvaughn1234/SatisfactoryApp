@@ -8,7 +8,6 @@ from app.utils import get_session
 class UserNotFoundError(Exception):
     pass
 
-
 class ConfigurationService:
     @staticmethod
     def load_user_configuration(user_key):
@@ -34,7 +33,8 @@ class ConfigurationService:
                     recipe_config = UserRecipeConfig(
                         user_id=user.id,
                         recipe_id=component_recipe['id'],
-                        known=False if component_recipe['display_name'].startswith('Alternate') else True,
+                        # known=False if component_recipe['display_name'].startswith('Alternate') else True,
+                        known=True,
                         excluded=False,
                         preferred=component_recipe['id'],
                     )

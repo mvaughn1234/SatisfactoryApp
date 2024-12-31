@@ -10,9 +10,24 @@ from app.services.recipe_service import RecipeService
 
 
 def optimizer(recipes, targets):
+    unpackage_recipes = [
+        118,
+        128,
+        159,
+        197,
+        198,
+        199,
+        200,
+        201,
+        219,
+        265,
+        277,
+        293,
+    ]
     # Assume RecipeService.get_component_recipes_details() provides structured recipe data
     known_recipes = [int(key) for key, value in recipes.items() if "known" in value and value["known"] is True]
     excluded_recipes = [int(key) for key, value in recipes.items() if "excluded" in value and value["excluded"] is True]
+    excluded_recipes = [*excluded_recipes, *unpackage_recipes]
     recipes_overridden_by_preference = [int(recipe_id) for recipe_id, config in recipes.items() if "preferred in config"
                             and config["preferred"] != recipe_id]
 
