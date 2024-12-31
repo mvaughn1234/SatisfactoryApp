@@ -6,18 +6,20 @@ import {OptimizationResult} from "../../types/ProductionLine.ts";
 import RecipeNode from "./RecipeNode.tsx";
 import raw_resource_lookup from "../../data/rawResourceLookup.ts";
 import {dg_link_props, dg_node_props, NodesAndLinksData} from "../../types/Other.ts";
+import {useTheme} from "@mui/material/styles";
 
 interface GraphProps {
 	data: OptimizationResult;
-	height?: number;
+	height: number;
 }
 
 const D3Graph: React.FC<GraphProps> = ({
 																				 data,
-																				 height = 600,
+																				 height,
 																			 }) => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [width, setWidth] = useState<number>(0);
+	const theme = useTheme();
 
 	const {nodes, links, processing}: NodesAndLinksData = useProcessedNodesAndLinks(data);
 
@@ -48,7 +50,8 @@ const D3Graph: React.FC<GraphProps> = ({
 		const svg = d3.select(containerRef.current)
 			.append("svg")
 			.attr("width", width)
-			.attr("height", height);
+			.attr("height", height)
+			.style("background-color", "blue");
 
 		// Add marker for arrows
 		svg.append("defs")

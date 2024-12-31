@@ -124,7 +124,8 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd, o
 
 	// Edit an existing target
 	const handleEditTarget = (id: string, product: ItemSummary | null, rate: number | null) => {
-		const currentLine = productionLines.find((line) => line['id'] === activeTabId)
+		console.log("activeTabId: ", activeTabId, " productionLines: ", productionLines)
+		const currentLine = productionLines.find((line) => line.id === activeTabId)
 		if (currentLine) {
 			const updatedTarget = {
 				id: `${activeTabId}.${product?.id || '0'}`,
@@ -134,8 +135,10 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd, o
 			const updatedTargets = currentLine['production_targets'].map(target =>
 				target.id === id ? updatedTarget : target
 			);
+			console.log("updating global line with adjustment")
 			updateGlobalLine(updatedTargets); // Update global state
 		} else {
+			console.log("setting global line as target")
 			updateGlobalLine([target])
 		}
 	};

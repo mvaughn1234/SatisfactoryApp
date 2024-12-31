@@ -299,7 +299,7 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 			>
 
 				{
-					!(loading && loadingOptimization && (!activeRecipes || activeRecipes?.length === 0)) ? activeRecipes.map(({
+					!(loading || loadingOptimization || (!activeRecipes || activeRecipes?.length === 0)) ? activeRecipes.map(({
 																																																											selectedRecipe,
 																																																											remainingRecipes,
 																																																											recipeGroupName,

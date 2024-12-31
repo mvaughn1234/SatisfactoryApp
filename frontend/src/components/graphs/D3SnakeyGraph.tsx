@@ -155,8 +155,8 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 			.attr('width', graphWidth)
 			.attr("height", graphHeight)
 			.attr("viewBox", [0, 0, graphWidth, graphHeight])
-			.attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;");
-		// .style("background", "#000")
+			.attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;")
+			.style("background-color", theme.palette.background.paper)
 
 		const format = d3.format(",.3f");
 		const mappedAlignment = {
@@ -234,6 +234,7 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 					svg.select(".links").attr("transform", event.transform.toString());
 					svg.select(".nodes").attr("transform", event.transform.toString());
 					svg.select(".labels").attr("transform", event.transform.toString());
+					svg.select(".labels").selectAll("text").attr("font-size", 12 / event.transform.k);
 				})
 		);
 
@@ -300,27 +301,6 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 			}
 		});
 
-		// function highlightNodes(node: FixedNodeProps, name: string) {
-		// 	let opacity = 0.3
-		//
-		// 	if (node.name == name) {
-		// 		opacity = 1;
-		// 	}
-		// 	node.sourceLinks.forEach(function (link) {
-		// 		if (link.target.name == name) {
-		// 			opacity = 1;
-		// 		}
-		// 	})
-		// 	node.targetLinks.forEach(function (link) {
-		// 		if (link.source.name == name) {
-		// 			opacity = 1;
-		// 		}
-		// 		;
-		// 	})
-		//
-		// 	return opacity;
-		// }
-		//
 		svg.select(".nodes")
 			.selectAll<SVGPathElement, FixedNodeProps>("rect")
 			.data(fixedNodes, d => d.id)
@@ -328,7 +308,7 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 				enter => {
 					const e = enter.append("rect");
 					e
-						.attr("stroke", "#000")
+						.attr("stroke", (d) => (d.y1-d.y0) > 1 ? "#000" : "rgba(0,0,0,0.35)")
 						.attr("fill", d => colorScale(getNodeText(d, "category")))
 						.attr("x", d => d.x0)
 						.attr("y", d => d.y0)
@@ -537,6 +517,7 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 					.text(d => d.type === "recipe" ? "" : getNodeText(d, "name")),
 				update => update
 					.transition().duration(750)
+					.attr("dy", "0.35em")
 					.attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
 					.attr("y", d => (d.y1 + d.y0) / 2)
 					.attr("fill", theme.palette.text.primary)
@@ -544,7 +525,7 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 				// .text(d => d.type === "recipe" ? getNodeText(d, "category") : getNodeText(d, "name")),
 				exit => exit.transition().duration(750).style("opacity", 0).remove()
 			)
-	}, [nodes, links, width, maxHeight, processing, alignment, nodePadding, toggleHighlightEffect]);
+	}, [nodes, links, width, maxHeight, processing, alignment, nodePadding, toggleHighlightEffect, theme]);
 
 	return <svg ref={svgRef}/>;
 }

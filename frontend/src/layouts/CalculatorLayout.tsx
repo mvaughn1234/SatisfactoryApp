@@ -4,7 +4,7 @@ import Grid from "@mui/material/Grid2";
 import {styled, useTheme} from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 // import useMediaQuery from "@mui/material/useMediaQuery";
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import ActiveRecipeList from "../components/ActiveRecipeList.tsx";
 import D3GlobalResourceLimitViz from "../components/graphs/D3GlobalResourceLimitViz.tsx";
 import D3RawPieChartContainer from "../components/graphs/D3RawPieChart.tsx";
@@ -18,7 +18,6 @@ import {useProductionLineState, useProductionLineUpdate} from "../store/Producti
 // Define drawer width here for consistency
 const globalRecipeDrawerWidth = 240;
 const activeRecipeDrawerWidth = 300;
-const graphHeight = 400;
 // const totalDrawerWidth = globalRecipeDrawerWidth + activeRecipeDrawerWidth;
 
 const Item = styled(Box)(({theme}) => ({
@@ -27,9 +26,10 @@ const Item = styled(Box)(({theme}) => ({
 	padding: theme.spacing(1),
 	textAlign: 'center',
 	color: theme.palette.text.secondary,
-	...theme.applyStyles('dark', {
-		backgroundColor: theme.palette.background.paper,
-	}),
+	// backgroundColor: theme.palette.background.paper,
+	// ...theme.applyStyles('dark', {
+	// 	backgroundColor: theme.palette.background.paper,
+	// }),
 }));
 import ListAltIcon from '@mui/icons-material/ListAlt';
 const CalculatorLayout: React.FC = () => {
@@ -37,8 +37,17 @@ const CalculatorLayout: React.FC = () => {
 	const {setActiveTabId, addProductionLine} = useProductionLineUpdate();
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [activeRecipeListOpen, setActiveRecipeListOpen] = useState<boolean>(false);
+	const [graphHeight, setGraphHeight] = useState<number>(500);
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
+	useEffect(() => {
+		if (isMobile) {
+			setGraphHeight(300)
+		} else {
+			setGraphHeight(500)
+		}
+	}, [isMobile])
 
 	// const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -147,7 +156,7 @@ const CalculatorLayout: React.FC = () => {
 								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
 
 								{optimizedLineData ? (
-									<D3SnakeyGraphContainer data={optimizedLineData} maxHeight={500}/>
+									<D3SnakeyGraphContainer data={optimizedLineData} maxHeight={graphHeight}/>
 								) : (
 									"No data available"
 								)}

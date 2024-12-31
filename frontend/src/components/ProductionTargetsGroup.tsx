@@ -25,15 +25,17 @@ const ProductionTargetsGroup: React.FC = () => {
 
 	// Fetch production targets when the active tab changes
 	useEffect(() => {
+		console.log("fetch targets when active tab changes")
 		if (activeTabId) {
 			const activeLine = productionLines.find((line) => line.id === activeTabId);
 			const storedProductionTargets = activeLine?.production_targets || [];
 			setProductionTargets(storedProductionTargets);
 		}
-	}, [activeTabId, productionLines]);
+	}, [activeTabId]);
 
 	// Synchronize pending updates with the backend
 	useEffect(() => {
+		console.log("pending updates")
 		if (pendingUpdates) {
 			const debouncedUpdate = setTimeout(() => {
 				updateProductionLine(activeTabId, { production_targets: pendingUpdates });
@@ -46,6 +48,7 @@ const ProductionTargetsGroup: React.FC = () => {
 
 	// Add a new target
 	const handleAddTarget = (product: ItemSummary | null, rate: number | null) => {
+		console.log("onAdd")
 		if (product && rate !== null) {
 			const newTarget: ProductionTarget = {
 				id: `${activeTabId}.${product.id}`,
@@ -60,6 +63,7 @@ const ProductionTargetsGroup: React.FC = () => {
 
 	// Handle edits from child components
 	const handleEditTarget = (id: string, product: ItemSummary | null, rate: number | null) => {
+		console.log("onEdit")
 		const updatedTargets = productionTargets.map((target) =>
 			target.id === id ? { ...target, product, rate } : target
 		);

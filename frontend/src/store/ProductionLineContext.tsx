@@ -143,6 +143,7 @@ export const ProductionLineProvider: React.FC<ProductionLineProviderProps> = ({c
 	}, []);
 
 	const removeProductionLine = useCallback((id: string) => {
+		console.log("removing target product: ", id)
 		setProductionLines((prevLines) => prevLines.filter((line) => line.id !== id));
 
 		(async () => {
