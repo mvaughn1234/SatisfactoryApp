@@ -604,35 +604,39 @@ const D3SnakeyGraphContainer: React.FC<D3SnakeyGraphContainerProps> = ({data, ma
 				// backgroundColor:
 			}}
 		>
-			<Stack direction="row" sx={{justifyContent: "space-between"}}>
-				<Stack direction="row" spacing={2} sx={{display: 'flex', width: 200, alignItems: 'center'}}>
-					<Slider aria-label="Node Padding" value={nodePadding as number} onChange={(e, value) => {
-						if (typeof value === "number") {
-							handlePaddingChange(e, value);
-						}
-					}}/>
-					<Typography sx={{display: 'inline', width: 200}}>
-						Node Padding
-					</Typography>
-				</Stack>
+			<Stack direction="column">
 				<Typography variant="h4" gutterBottom>
 					Sankey Graph
 				</Typography>
-				<Stack direction="row" spacing={2} sx={{display: 'flex', width: 300, alignItems: 'center'}}>
-					<ToggleButtonGroup size="small" color={"primary"} {...control} aria-label="Small sizes">
-						{children}
-					</ToggleButtonGroup>
+
+				<Stack direction="row" spacing={2} sx={{justifyContent: "space-between"}}>
+
+					<Stack direction="column" sx={{display: 'flex', width: 80, alignItems: 'center'}}>
+						<Typography sx={{display: 'inline', width: 200}}>
+							Node Padding
+						</Typography>
+						<Slider aria-label="Node Padding" value={nodePadding as number} onChange={(e, value) => {
+							if (typeof value === "number") {
+								handlePaddingChange(e, value);
+							}
+						}}/>
+					</Stack>
+					<Box>
+						<ToggleButtonGroup size="small" color={"primary"} {...control} aria-label="Small sizes">
+							{children}
+						</ToggleButtonGroup>
+					</Box>
 					<FormGroup>
 						<FormControlLabel control={<Switch checked={toggleHighlightEffect} onChange={handleChangeHighlight}
 																							 inputProps={{'aria-label': 'controlled'}}/>}
-															label="Mouseover Highlight"/>
+															label="Highlight"/>
 					</FormGroup>
 				</Stack>
+				<div ref={containerRef}>
+					<D3SnakeyGraph data={data} width={width} maxHeight={maxHeight} alignment={alignment}
+												 nodePadding={nodePadding / 100} toggleHighlightEffect={toggleHighlightEffect}/>
+				</div>
 			</Stack>
-			<div ref={containerRef}>
-				<D3SnakeyGraph data={data} width={width} maxHeight={maxHeight} alignment={alignment}
-											 nodePadding={nodePadding / 100} toggleHighlightEffect={toggleHighlightEffect}/>
-			</div>
 		</Box>
 	);
 }

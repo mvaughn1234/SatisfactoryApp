@@ -1,6 +1,8 @@
-import {Box, Tab, Tabs} from "@mui/material";
+// ./src/layouts/CalculatorLayout
+import {Box, Fab, Tab, Tabs} from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import {styled, useTheme} from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 // import useMediaQuery from "@mui/material/useMediaQuery";
 import React, {useState} from 'react';
 import ActiveRecipeList from "../components/ActiveRecipeList.tsx";
@@ -29,13 +31,14 @@ const Item = styled(Box)(({theme}) => ({
 		backgroundColor: theme.palette.background.paper,
 	}),
 }));
-
-
+import ListAltIcon from '@mui/icons-material/ListAlt';
 const CalculatorLayout: React.FC = () => {
 	const {productionLines, activeTabId, loadingProductionLines, optimizedLineData} = useProductionLineState();
 	const {setActiveTabId, addProductionLine} = useProductionLineUpdate();
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [activeRecipeListOpen, setActiveRecipeListOpen] = useState<boolean>(false);
 	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
 	// const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -45,6 +48,10 @@ const CalculatorLayout: React.FC = () => {
 
 	const handleDrawerClose = () => {
 		setDrawerOpen(false);
+	}
+
+	const handleActiveRecipeListToggle = () => {
+		setActiveRecipeListOpen(!activeRecipeListOpen);
 	}
 
 	const handleTabChange = (_: React.SyntheticEvent, newValue: string) => {
@@ -60,14 +67,26 @@ const CalculatorLayout: React.FC = () => {
 			flex: 1,
 			display: 'flex',
 			overflow: 'hidden',
-			// backgroundColor: 'yellow'
+			// display: 'flex',
+			// flexDirection: 'column',
+			// width: '100%',
+			// height: '100vh',
+			// overflow: 'hidden', // Prevent unintended overflow
+
 		}}>
+			{isMobile &&
+					<Fab sx={{position: 'absolute', bottom: '10px', right: '10px', backgroundColor: theme.palette.primary.main}} onClick={handleActiveRecipeListToggle}>
+							<ListAltIcon/>
+					</Fab>
+			}
 			{/*Drawer to configure global recipe knowledge */}
 
 			<ActiveRecipeList
-				isRecipeDrawerOpen={drawerOpen}
-				openRecipeDrawer={handleDrawerOpen}
+				isGlobalRecipeDrawerOpen={drawerOpen}
+				handleGlobalRecipeDrawerOpen={handleDrawerOpen}
 				activeRecipeDrawerWidth={activeRecipeDrawerWidth}
+				isActiveRecipeDrawerOpen={activeRecipeListOpen}
+				handleActiveRecipeDrawerOpen={handleActiveRecipeListToggle}
 			/>
 			<RecipeDrawer
 				open={drawerOpen}
@@ -80,6 +99,7 @@ const CalculatorLayout: React.FC = () => {
 					flex: 1,
 					display: 'flex',
 					flexDirection: 'column',
+					// width: isMobile ? '100%' : 'auto',
 					// ml: !isMobile && drawerOpen ? `${drawerWidth}px` : '300px',
 					overflowY: 'auto',
 					// transition: theme.transitions.create('margin', {
@@ -92,21 +112,23 @@ const CalculatorLayout: React.FC = () => {
 
 				{/*	/!* Tabs for production lines *!/*/}
 				{!loadingProductionLines &&
-            <Tabs
-                value={parseInt(activeTabId, 10)}
-                onChange={handleTabChange}
-                sx={{borderBottom: 1, borderColor: 'divider'}}
-            >
-							{productionLines.map((line) => (
-								<Tab key={line.id} label={line.name} value={parseInt(line.id, 10)}/>
-							))}
-                <Tab
-                    label="+"
-                    onClick={handleAddTab}
-									// disabled // Prevent it from being selectable
-                    sx={{cursor: 'pointer'}}
-                />
-            </Tabs>
+                <Tabs
+                    value={parseInt(activeTabId, 10)}
+                    onChange={handleTabChange}
+                    sx={{borderBottom: 1, borderColor: 'divider'}}
+                    variant="scrollable"
+                    scrollButtons
+                >
+									{productionLines.map((line) => (
+										<Tab key={line.id} label={line.name} value={parseInt(line.id, 10)}/>
+									))}
+                    <Tab
+                        label="+"
+                        onClick={handleAddTab}
+											// disabled // Prevent it from being selectable
+                        sx={{cursor: 'pointer'}}
+                    />
+                </Tabs>
 				}
 
 				<Box
@@ -120,7 +142,7 @@ const CalculatorLayout: React.FC = () => {
 				}}>
 					<Grid container spacing={{xs: 2, md: 3}} columns={{xs: 12}}>
 						{/*/!* Main Graph - Takes 9/12 of the Grid *!/*/}
-						<Grid size={{xs: 4, sm: 12, md: 12, lg: 12, xl: 8}}>
+						<Grid size={{xs: 12, sm: 12, md: 12, lg: 12, xl: 8}}>
 							<Item>
 								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
 
@@ -171,8 +193,6 @@ const CalculatorLayout: React.FC = () => {
 								{/*</Box>*/}
 							</Item>
 						</Grid>
-
-
 					</Grid>
 				</Box>
 			</Box>

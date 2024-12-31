@@ -1,3 +1,4 @@
+// ./src/components/ActiveRecipeWrapper
 import {ExpandLess, ExpandMore} from "@mui/icons-material";
 import Collapse from "@mui/material/Collapse";
 import List from "@mui/material/List";
@@ -7,6 +8,7 @@ import {RecipeDetail} from "../types/Recipe.ts";
 
 
 import RecipeCard from "./RecipeCard.tsx";
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 
 interface ActiveRecipeWrapperProps {
 	selectedRecipe: RecipeDetail;
@@ -14,7 +16,7 @@ interface ActiveRecipeWrapperProps {
 	recipeGroupName: string;
 	throughputGauge: number;
 	totalThroughput: number;
-	// outputThroughput: number;
+	outputThroughput: number;
 	outputGauge: number;
 	// onUpdate: (recipeId: number, statusType: string) => void;
 }
@@ -25,7 +27,7 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
 																																	 recipeGroupName,
 																																	 throughputGauge,
 																																	 totalThroughput,
-																																	 // outputThroughput,
+																																	 outputThroughput,
 																																	 outputGauge
 																																 }) => {
 	const [expanded, setExpanded] = useState<boolean>(false);
@@ -50,9 +52,9 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
 						throughputGauge={throughputGauge}
 						totalThroughput={totalThroughput}
 						outputGauge={outputGauge}
-						// outputThroughput={outputThroughput}
+						outputThroughput={outputThroughput}
 					/>
-					{expanded ? <ExpandLess/> : <ExpandMore/>}
+					{expanded ? <ExpandLess/> : <SwapHorizIcon/>}
 				</ListItemButton>
 				<Collapse in={expanded} orientation="vertical" unmountOnExit sx={{width: '100%'}}>
 					<List sx={{width: '100%'}}>
@@ -90,7 +92,7 @@ const ActiveRecipeWrapper: React.FC<ActiveRecipeWrapperProps> = ({
             manufactoring_duration={selectedRecipe.manufactoring_duration}
             throughputGauge={throughputGauge}
             totalThroughput={totalThroughput}
-            // outputThroughput={outputThroughput}
+            outputThroughput={outputThroughput}
             outputGauge={outputGauge}
         />
 	)

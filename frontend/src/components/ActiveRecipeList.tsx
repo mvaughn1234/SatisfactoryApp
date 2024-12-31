@@ -1,19 +1,22 @@
+// ./src/components/ActiveRecipeList.tsx
 import MenuIcon from "@mui/icons-material/Menu";
-import {Drawer, IconButton} from "@mui/material";
+import {Box, Drawer, Fab, IconButton, SwipeableDrawer} from "@mui/material";
 import Divider from "@mui/material/Divider";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import Skeleton from "@mui/material/Skeleton";
+import Stack from "@mui/material/Stack";
 import {useTheme, styled} from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import React, {useMemo} from 'react';
+import React, {useMemo, useState, useEffect} from 'react';
 import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
 import {useProductionLineState} from "../store/ProductionLineContext.tsx";
 import {OptimizationResult} from "../types/ProductionLine.ts";
 import {RecipeDetail, RecipeItem} from "../types/Recipe.ts";
 import ActiveRecipeWrapper from "./ActiveRecipeWrapper.tsx";
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
 // Memoize ActiveRecipeWrapper to prevent unnecessary re-renders
 const MemoizedActiveRecipeWrapper = React.memo(ActiveRecipeWrapper, (prevProps, nextProps) => {
@@ -24,16 +27,72 @@ const MemoizedActiveRecipeWrapper = React.memo(ActiveRecipeWrapper, (prevProps, 
 		prevProps.recipeGroupName === nextProps.recipeGroupName &&
 		prevProps.throughputGauge === nextProps.throughputGauge &&
 		prevProps.totalThroughput === nextProps.totalThroughput &&
-		// prevProps.outputThroughput === nextProps.outputThroughput &&
+		prevProps.outputThroughput === nextProps.outputThroughput &&
 		prevProps.outputGauge === nextProps.outputGauge
 		// prevProps.onUpdate === nextProps.onUpdate
 	);
 });
 
 interface ActiveRecipeListProps {
-	isRecipeDrawerOpen: boolean,
-	openRecipeDrawer: () => void,
+	isGlobalRecipeDrawerOpen: boolean,
+	handleGlobalRecipeDrawerOpen: () => void,
+	isActiveRecipeDrawerOpen: boolean,
+	handleActiveRecipeDrawerOpen: () => void,
 	activeRecipeDrawerWidth: number,
+}
+
+interface AppropriateDrawerTypeProps {
+	children: React.ReactNode;
+	open: boolean;
+	activeRecipeDrawerWidth: number;
+}
+
+const AppropriateDrawerType: React.FC<AppropriateDrawerTypeProps> = ({children, open,  activeRecipeDrawerWidth}) => {
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+	if (isMobile) {
+		return (
+			<Drawer
+				anchor="right"
+				open={open}
+				sx={{
+					// display: 'flex',
+					// overflowY: 'auto',
+					// flexShrink: 0,
+					// pt: theme.mixins.toolbar.minHeight,
+					[`& .MuiDrawer-paper`]: {
+						width: '100%',
+						height: '100vh',
+						boxSizing: 'border-box',
+					},
+				}}
+			>
+				{children}
+			</Drawer>
+
+		)
+	} else {
+		return (
+			<Drawer
+				variant="permanent"
+				anchor="left"
+				sx={{
+					width: isMobile ? '100%' : activeRecipeDrawerWidth,
+					height: isMobile ? '100vh' : '100%',
+					overflowY: 'auto',
+					flexShrink: 0,
+					pt: theme.mixins.toolbar.minHeight,
+					[`& .MuiDrawer-paper`]: {
+						width: activeRecipeDrawerWidth,
+						boxSizing: 'border-box',
+					},
+				}}
+			>
+				{children}
+			</Drawer>
+		)
+	}
 }
 
 const DrawerHeader = styled('div')(({theme}) => ({
@@ -83,9 +142,11 @@ const CalculateProductionThroughput = (data: OptimizationResult) => {
 
 
 const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
-																														 isRecipeDrawerOpen,
-																														 openRecipeDrawer,
-																														 activeRecipeDrawerWidth
+																														 isGlobalRecipeDrawerOpen,
+																														 handleGlobalRecipeDrawerOpen,
+																														 activeRecipeDrawerWidth,
+																														 isActiveRecipeDrawerOpen,
+																														 handleActiveRecipeDrawerOpen
 																													 }) => {
 	const {recipesGroupedDetail, loading} = useAppStaticData();
 	const {optimizedLineData, loadingOptimization} = useProductionLineState()
@@ -160,20 +221,20 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 
 			const outputThroughput = optimizedLineData.target_output.find((target_output) => {
 				return selectedPrimaryItem?.product.id === target_output.item_id
-			}) ? (selectedPrimaryItem?.throughput || 0) : 0
+			})?.amount || 0;
 
 			const selectedOutputGauge = outputThroughput ? outputThroughput / totalItemThroughput : 0;
 			const selectedThroughput = selectedPrimaryItem ? (selectedPrimaryItem["throughput"] - outputThroughput) / totalItemThroughput : 0;
 			maxThroughput = selectedThroughput > maxThroughput ? selectedThroughput : maxThroughput;
 			maxThroughput = selectedOutputGauge > maxThroughput ? selectedOutputGauge : maxThroughput;
-			console.log("SOG, OT, ST", selectedOutputGauge, outputThroughput, selectedThroughput)
+
 			return {
 				selectedRecipe,
 				remainingRecipes,
 				recipeGroupName: recipeGroup.standard_product_display_name,
 				throughputGauge: selectedThroughput,
 				totalThroughput: selectedPrimaryItem?.throughput || 0,
-				// outputThroughput: outputThroughput,
+				outputThroughput: outputThroughput,
 				outputGauge: selectedOutputGauge,
 			};
 		}).filter((item): item is {
@@ -182,76 +243,59 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 			recipeGroupName: string;
 			throughputGauge: number;
 			totalThroughput: number;
-			// outputThroughput: number;
+			outputThroughput: number;
 			outputGauge: number
 		} => item !== null); // Remove null entries
 
 		return nonNormalizedActiveRecipes.map((nonNormalizedActiveRecipe) => {
-			console.log("throughputGauge, outputGauge", nonNormalizedActiveRecipe.throughputGauge / maxThroughput, nonNormalizedActiveRecipe.outputGauge / maxThroughput)
 			return {
 				...nonNormalizedActiveRecipe,
 				throughputGauge: nonNormalizedActiveRecipe.throughputGauge / maxThroughput,
 				outputGauge: nonNormalizedActiveRecipe.outputGauge / maxThroughput
 			}
-		}).sort((a, b) => b.totalThroughput- a.totalThroughput)
+		}).sort((a, b) => b.totalThroughput - a.totalThroughput)
 	}, [optimizedLineData, recipesGroupedDetail]);
 
 	return (
-		<Drawer
-			variant="permanent"
-			anchor="left"
-			sx={{
-				width: isMobile ? '100%' : activeRecipeDrawerWidth,
-				height: isMobile ? '100vh' : '100%',
-				overflowY: 'auto',
-				flexShrink: 0,
-				pt: theme.mixins.toolbar.minHeight,
-				[`& .MuiDrawer-paper`]: {
-					width: activeRecipeDrawerWidth,
-					boxSizing: 'border-box',
-				},
-			}}
+		<AppropriateDrawerType open={isActiveRecipeDrawerOpen} activeRecipeDrawerWidth={activeRecipeDrawerWidth}
 		>
 			<Toolbar/>
-			< DrawerHeader>
-				{!isRecipeDrawerOpen && <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={openRecipeDrawer}
-            edge="start"
-            sx={{
-							position: 'fixed',
-							left: '10px',
-						}}
-        >
-            <MenuIcon/>
-        </IconButton>
-				}
-				<Typography sx={{pr: 7}}>Active Recipes</Typography>
+			<DrawerHeader>
+				<Stack direction="row" sx={{width: '100%', display: 'flex', justifyContent: "space-between", alignItems: 'center'}}>
+					{!isGlobalRecipeDrawerOpen && <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              onClick={handleGlobalRecipeDrawerOpen}
+              // edge="start"
+              // sx={{
+							// 	position: 'fixed',
+							// 	left: '10px',
+							// }}
+          >
+              <MenuIcon/>
+          </IconButton>
+					}
+					<Typography >Active Recipes</Typography>
+					{isMobile ?
+              <IconButton onClick={handleActiveRecipeDrawerOpen}>
+                  <KeyboardArrowRightIcon/>
+              </IconButton>
+						:
+						<Box sx={{width: "32px"}}></Box>
+					}
+				</Stack>
 			</DrawerHeader>
 			<Divider/>
 
-			<List
-				sx
-					={
-					{
-						overflow: 'auto',
-						'::-webkit-scrollbar':
-							{
-								width: '4px',
-							}
-						,
-						'::-webkit-scrollbar-track':
-							{}
-						,
-						'::-webkit-scrollbar-thumb':
-							{
-								backgroundColor: '#939393', // Indicator color
-								borderRadius: '10px',
-							}
-						,
-					}
-				}
+			<List sx={{
+				overflow: 'auto',
+				'::-webkit-scrollbar': {width: '4px'},
+				'::-webkit-scrollbar-track': {},
+				'::-webkit-scrollbar-thumb': {
+					backgroundColor: '#939393', // Indicator color
+					borderRadius: '10px'
+				},
+			}}
 			>
 
 				{
@@ -261,7 +305,7 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 																																																											recipeGroupName,
 																																																											throughputGauge,
 																																																											totalThroughput,
-																																																											// outputThroughput,
+																																																											outputThroughput,
 																																																											outputGauge
 																																																										}) => (
 							<ListItem
@@ -279,7 +323,7 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 									recipeGroupName={recipeGroupName}
 									throughputGauge={throughputGauge}
 									totalThroughput={totalThroughput}
-									// outputThroughput={outputThroughput}
+									outputThroughput={outputThroughput}
 									outputGauge={outputGauge}
 								/>
 							</ListItem>
@@ -299,7 +343,7 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 						))
 				}
 			</List>
-		</Drawer>
+		</AppropriateDrawerType>
 	);
 };
 

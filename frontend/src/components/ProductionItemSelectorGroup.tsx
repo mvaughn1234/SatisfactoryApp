@@ -175,7 +175,7 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({target, isDummy, onAdd, o
 					setProduct(newValue as ItemDetail);
 				}}
 				renderInput={(params) => (
-					<TextField {...params} label={(isDummy || !product) ? "Select Product" : ''} variant="standard" sx={{minWidth: 300}}/>
+					<TextField {...params} label={(isDummy || !product) ? "Select Product" : ''} variant="standard" sx={{minWidth: 200}}/>
 				)}
 				ListboxComponent={CustomListboxComponent}
 				PopperComponent={StyledPopper}

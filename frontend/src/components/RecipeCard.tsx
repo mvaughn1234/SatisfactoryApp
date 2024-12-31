@@ -1,3 +1,4 @@
+// ./src/components/RecipeCard
 import {Box, Checkbox, Divider, Theme, Tooltip} from "@mui/material";
 import {useTheme} from "@mui/material/styles";
 import Stack from "@mui/material/Stack";
@@ -12,7 +13,7 @@ interface RecipeCardProps extends RecipeSummary {
 	products?: RecipeItem[];
 	throughputGauge?: number;
 	totalThroughput?: number;
-	// outputThroughput?: number;
+	outputThroughput?: number;
 	outputGauge?: number;
 }
 
@@ -27,43 +28,43 @@ const formatNumber = (value: number): string => {
 }
 
 const drawBackgroundBar = (throughputGauge: number, outputGauge: number, theme: Theme) => {
-	const outputBox =	outputGauge > 0 && <Box
-		sx={{
-			position: "absolute", // Position the fill behind the content
-			top: "2.5%",
-			height: "95%",
-			left: 0,
-			width: `${Math.min(Math.max(outputGauge, 0), 1) * 100}%`, // Proportional fill
-			backgroundColor: "primary.main", // Fill color
-			transition: "width 0.3s ease", // Smooth transition for width change
-			zIndex: -1, // Ensure it is behind all other content
-			opacity: theme.palette.mode === "dark" ? 0.25 : 0.50,
-			border: 1,
-			borderRadius: 0,
-		}}
-	/>
+	const outputBox = outputGauge > 0 && <Box
+      sx={{
+				position: "absolute", // Position the fill behind the content
+				top: "2.5%",
+				height: "95%",
+				left: `${throughputGauge ? Math.min(Math.max(throughputGauge, 0), 1) * 100 : 0}%`,
+				width: `${Math.min(Math.max(outputGauge, 0), 1) * 100}%`, // Proportional fill
+				backgroundColor: "primary.main", // Fill color
+				transition: "width 0.3s ease", // Smooth transition for width change
+				zIndex: -1, // Ensure it is behind all other content
+				opacity: theme.palette.mode === "dark" ? 0.125 : 0.250,
+				border: 1,
+				borderRadius: 0,
+			}}
+  />
 
 	const throughputBox = throughputGauge > 0 && <Box
-		sx={{
-			position: "absolute", // Position the fill behind the content
-			top: "2.5%",
-			height: "95%",
-			left: `${outputGauge ? Math.min(Math.max(outputGauge, 0), 1) * 100 : 0}`,
-			width: `${Math.min(Math.max(throughputGauge, 0), 1) * 100}%`, // Proportional fill
-			backgroundColor: "secondary.main", // Fill color
-			transition: "width 0.3s ease", // Smooth transition for width change
-			zIndex: -1, // Ensure it is behind all other content
-			opacity: theme.palette.mode === "dark" ? 0.125 : 0.25,
-			border: 1,
-			borderRadius: 0,
-		}}
-	/>
+      sx={{
+				position: "absolute", // Position the fill behind the content
+				top: "2.5%",
+				height: "95%",
+				left: 0,
+				width: `${Math.min(Math.max(throughputGauge, 0), 1) * 100}%`, // Proportional fill
+				backgroundColor: "secondary.main", // Fill color
+				transition: "width 0.3s ease", // Smooth transition for width change
+				zIndex: -1, // Ensure it is behind all other content
+				opacity: theme.palette.mode === "dark" ? 0.125 : 0.25,
+				border: 1,
+				borderRadius: 0,
+			}}
+  />
 	const Combined = <Box>
-		{outputBox}
 		{throughputBox}
+		{outputBox}
 	</Box>
 
-	if (outputGauge && outputGauge > 0) {
+	if (outputGauge && throughputGauge > 0) {
 		return (Combined)
 	} else if (outputGauge > 0) {
 		return outputBox
@@ -80,7 +81,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 																								 products,
 																								 throughputGauge,
 																								 totalThroughput,
-																								 // outputThroughput,
+																								 outputThroughput,
 																								 outputGauge
 																							 }) => {
 	const [detailCard, setDetailCard] = useState(false);
@@ -115,23 +116,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 			onMouseEnter={handleMouseEnter}
 			onMouseLeave={handleMouseLeave}
 		>
-			{/*{throughputGauge &&*/}
-			{/*	<Box*/}
-			{/*		sx={{*/}
-			{/*			position: "absolute", // Position the fill behind the content*/}
-			{/*			top: "2.5%",*/}
-			{/*			height: "95%",*/}
-			{/*			left: 0,*/}
-			{/*			width: `${Math.min(Math.max(throughputGauge, 0), 1) * 100}%`, // Proportional fill*/}
-			{/*			backgroundColor: "secondary.main", // Fill color*/}
-			{/*			transition: "width 0.3s ease", // Smooth transition for width change*/}
-			{/*			zIndex: -1, // Ensure it is behind all other content*/}
-			{/*			opacity: theme.palette.mode === "dark" ? 0.125 : 0.25,*/}
-			{/*			border: 1,*/}
-			{/*			borderRadius: 0,*/}
-			{/*		}}*/}
-			{/*	/>*/}
-			{/*}*/}
 			{(throughputGauge || outputGauge) ? drawBackgroundBar(throughputGauge || 0, outputGauge || 0, theme) : null}
 			<Tooltip
 				placement="right"
@@ -201,22 +185,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 						onChange={handleCheckboxChange}
 						disabled={single}
 					/>
-					{/*<Badge*/}
-					{/*	badgeContent={totalThroughput ? formatNumber(totalThroughput) : 0}*/}
-					{/*	color="primary"*/}
-					{/*	anchorOrigin={{*/}
-					{/*		vertical: 'bottom',*/}
-					{/*		horizontal: 'right',*/}
-					{/*	}}*/}
-					{/*	max={1000}*/}
-					{/*>*/}
-					<img
+
+ 					<img
 						width="48"
 						height="48"
 						src={`/assets/images/items/${root_component.split(" ").join("-").toLowerCase()}_64.png`}
 						alt={root_component}
 					/>
-					{/*</Badge>*/}
 
 					<Box sx={{px: 2}}>
 						{root_component === display_name ? (
@@ -224,7 +199,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 						) : (
 							<Stack>
 								<Typography variant="body1">{root_component}</Typography>
-								<Typography variant="caption" color="textSecondary">
+								<Typography variant="body2" color="textSecondary">
 									{display_name.startsWith('Alternate: ') ? display_name.substring(11) : display_name}
 								</Typography>
 							</Stack>
@@ -244,9 +219,18 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 						zIndex: -1, // Ensure it is behind all other content
 					}}
       >
-          <Typography
-              variant="caption"
-          >[ <b>{formatNumber(totalThroughput)}</b> /min ]</Typography>
+				{outputThroughput && (Number(formatNumber(totalThroughput - outputThroughput)) > 0 && outputThroughput > 0) ?
+					<>
+						<Typography
+							variant="caption"
+						>[ consumed: <b>{formatNumber(totalThroughput - outputThroughput)}</b> /min, <Typography color="primary.main" sx={{display: "inline"}} variant="caption">yield: <b>{formatNumber(outputThroughput)}</b>  /min</Typography> ]</Typography>
+						{/*<Typography variant="caption">n | <b>{formatNumber(outputThroughput)}</b> /min ]</Typography> :*/}
+						{/*<Typography variant="caption">n ]</Typography>*/}
+					</>
+					: outputThroughput && outputThroughput > 0 ?
+						<Typography variant="caption">[ <Typography color="primary.main" sx={{display: "inline"}} variant="caption"><b>{formatNumber(outputThroughput)}</b> /min</Typography> ]</Typography>
+						: <Typography variant="caption">[ <b>{formatNumber(totalThroughput)}</b> /min ]</Typography>
+				}
       </Box>
 			}
 		</Box>
