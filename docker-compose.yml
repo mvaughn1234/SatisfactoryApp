@@ -1,17 +1,5 @@
 version: '3.8'
 services:
-#  nginx:
-#    build:
-#      context: ./frontend
-#      dockerfile: Dockerfile
-#    container_name: nginx
-#    ports:
-#      - "80:80"
-#    depends_on:
-#      - backend
-#    networks:
-#      - app-network
-
   backend:
     build: ./backend
     container_name: satisfactory-backend

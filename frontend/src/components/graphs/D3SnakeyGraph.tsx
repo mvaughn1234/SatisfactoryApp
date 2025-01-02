@@ -415,18 +415,20 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 						})
 						.attr("d", d => d.path)
 						.attr("stroke-opacity", 0.5)
+						.attr("stroke-width", d => Math.max(1, d.width))
 						.attr("stroke", d => {
 							if (d.circular) {
 								return "red"
-							}
-							if (linkColor === "source-target") {
+							} else {
 								return `url(#${d.gradientId})`
 							}
-							if (linkColor === "source") return colorScale(getNodeText(d.source, "category"));
-							if (linkColor === "target") return colorScale(getNodeText(d.target, "category"));
-							return linkColor;
+							// if (linkColor === "source-target") {
+							// 	return `url(#${d.gradientId})`
+							// }
+							// if (linkColor === "source") return colorScale(getNodeText(d.source, "category"));
+							// if (linkColor === "target") return colorScale(getNodeText(d.target, "category"));
+							// return linkColor;
 						})
-						.attr("stroke-width", d => Math.max(1, d.width))
 						.on("mouseover", (_event, l) => {
 							if (toggleHighlightEffect) {
 								const source = l.source.id;
@@ -487,6 +489,19 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 						.transition()
 						.duration(750)
 						.attr("stroke-width", d => Math.max(1, d.width))
+						.attr("stroke", d => {
+							if (d.circular) {
+								return "red"
+							} else {
+								return `url(#${d.gradientId})`
+							}
+							// if (linkColor === "source-target") {
+							// 	return `url(#${d.gradientId})`
+							// }
+							// if (linkColor === "source") return colorScale(getNodeText(d.source, "category"));
+							// if (linkColor === "target") return colorScale(getNodeText(d.target, "category"));
+							// return linkColor;
+						})
 						.attr("d", d => d.path)
 						.select("title").text(d => `${getNodeText(d.source, "name")}  → ${d.item_name} → ${getNodeText(d.target, "name")}\n${format(d.value)} /min`)
 					return update
