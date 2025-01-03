@@ -36,7 +36,16 @@ def create_app(config_class):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    logging.basicConfig()
+    # Configure the logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler("app.log"),  # Logs to a file named `services.log`
+            logging.StreamHandler()  # Logs to the console
+        ]
+    )
+
     # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
     # Import all models explicitly
