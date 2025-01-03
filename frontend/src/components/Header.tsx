@@ -1,4 +1,4 @@
-import {AppBar, IconButton, Toolbar, Typography} from '@mui/material';
+import {AppBar, Toolbar, Typography} from '@mui/material';
 import React from 'react';
 import ColorModeIconDropdown from "../theme/ColorModeIconDropdown.tsx";
 
@@ -9,9 +9,9 @@ const Header: React.FC = () => {
 				<Typography variant="h6" sx={{flexGrow: 1}}>
 					Calculator
 				</Typography>
-				<IconButton color="inherit">
+				{/*<IconButton color="inherit">*/}
 					<ColorModeIconDropdown/>
-				</IconButton>
+				{/*</IconButton>*/}
 			</Toolbar>
 		</AppBar>
 	);

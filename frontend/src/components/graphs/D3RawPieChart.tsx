@@ -82,36 +82,57 @@ const D3RawPieChart: React.FC<D3RawPieChart> = ({data, width, maxHeight}) => {
 			.selectAll<PiePathElement, d3.PieArcDatum<ProcessedDataResultPie>>("path")
 			.data(pie(processedData))
 			.join(
-				enter => enter
-					.append("path")
-					.attr("stroke", theme.palette.text.primary)
-					.attr("fill", (d) => d.data.color)
-					.each(function (d) {
+				enter => {
+					const e = enter.append("path")
+						.call(enter => enter.append("title").text(d => `${d.data.name} → ${d.data.quantity} /min`))
+						.attr("stroke", theme.palette.text.primary)
+						.attr("fill", (d) => d.data.color)
+						.each(function (d) {
+							const pie = this as PiePathElement;
+							pie._current = d;
+						})
+						.attr("d", arc)
+						.on("end", function (d) {
+							const pie = this as PiePathElement;
+							pie._current = d;
+						})
+						.on("mouseover", (_event, l) => {
+							const source = l.data.id;
+
+							svg.selectAll<PiePathElement, d3.PieArcDatum<ProcessedDataResultPie>>("path")
+								.style("opacity", n => {
+									return n.data.id === source ? 1 : 0.3;
+								});
+
+						})
+						.on("mouseout", () => {
+							d3.selectAll<PiePathElement, d3.PieArcDatum<ProcessedDataResultPie>>("path").style("opacity", 1);
+						})
+					return e
+				},
+				update => {
+					update.transition()
+						.duration(750)
+						.attr("fill", (d) => d.data.color)
+						.attr("stroke", theme.palette.text.primary)
+						.attrTween("d", function (d) {
+							const pie = this as PiePathElement;
+							// Now tween from startAngle → endAngle
+							const i = d3.interpolate(pie._current, d);
+							return (t) => arc(i(t)) ?? "0,0";
+						}).on("end", function (d) {
 						const pie = this as PiePathElement;
 						pie._current = d;
 					})
-					.attr("d", arc)
-					.on("end", function (d) {
-						const pie = this as PiePathElement;
-						pie._current = d;
-					})
+						.select("title").text(d => `${d.data.name} → ${d.data.quantity} /min`)
+					return update
+				}
 				,
-				update => update
-					.transition()
-					.duration(750)
-					.attr("fill", (d) => d.data.color)
-					.attr("stroke", theme.palette.text.primary)
-					.attrTween("d", function (d) {
-						const pie = this as PiePathElement;
-						// Now tween from startAngle → endAngle
-						const i = d3.interpolate(pie._current, d);
-						return (t) => arc(i(t)) ?? "0,0";
-					}).on("end", function (d) {
-						const pie = this as PiePathElement;
-						pie._current = d;
-					}),
-				exit => exit
-					.remove()
+				exit => {
+					exit
+						.remove()
+					return exit
+				}
 			)// store the initial angles
 
 		// Return the svg node to be displayed.

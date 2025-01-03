@@ -221,6 +221,7 @@ class ConfigurationService:
                 if not user_targets_by_line:
                     return list(production_lines.values())
 
+                user_targets_by_line.sort(key=lambda pLineTarget: pLineTarget.id)
                 # Batch fetch item summaries
                 item_ids = [target.item_id for target in user_targets_by_line]
                 item_summaries = ItemService.get_item_by_id_summary(item_ids)

@@ -1,22 +1,22 @@
 // ./src/components/ActiveRecipeList.tsx
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import MenuIcon from "@mui/icons-material/Menu";
-import {Box, Drawer, Fab, IconButton, SwipeableDrawer} from "@mui/material";
+import {Box, Drawer, IconButton} from "@mui/material";
 import Divider from "@mui/material/Divider";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import {useTheme, styled} from "@mui/material/styles";
+import {styled, useTheme} from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import React, {useMemo, useState, useEffect} from 'react';
+import React, {useMemo, useState} from 'react';
 import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
 import {useProductionLineState} from "../store/ProductionLineContext.tsx";
 import {OptimizationResult} from "../types/ProductionLine.ts";
 import {RecipeDetail, RecipeItem} from "../types/Recipe.ts";
 import ActiveRecipeWrapper from "./ActiveRecipeWrapper.tsx";
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
 // Memoize ActiveRecipeWrapper to prevent unnecessary re-renders
 const MemoizedActiveRecipeWrapper = React.memo(ActiveRecipeWrapper, (prevProps, nextProps) => {
@@ -149,20 +149,21 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 																														 handleActiveRecipeDrawerOpen
 																													 }) => {
 	const {recipesGroupedDetail, loading} = useAppStaticData();
-	const {optimizedLineData, loadingOptimization} = useProductionLineState()
+	const {activeTabId, optimizationResults, calculatingResult} = useProductionLineState()
+	const [fallbackNumberOfRecipesToRender, setFallbackNumberOfRecipesToRender] = useState<number>(10);
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 	// const [maxThrouhgput, setMaxThroughput] = useState<number>(0);
 
 	const activeRecipes = useMemo(() => {
-		if (loading || loadingOptimization || !optimizedLineData || !recipesGroupedDetail) return [];
+		if (!activeTabId || loading || !optimizationResults[activeTabId] || !recipesGroupedDetail) return [];
 
 		let maxThroughput = 0;
 
-		const totalItemThroughput = CalculateProductionThroughput(optimizedLineData);
+		const totalItemThroughput = CalculateProductionThroughput(optimizationResults[activeTabId]);
 
 		// const p_line_objects = Object.values(graph.production_line)
-		const nonNormalizedActiveRecipes = Object.entries(optimizedLineData.production_line).map(([recipe_id, {
+		const nonNormalizedActiveRecipes = Object.entries(optimizationResults[activeTabId].production_line).map(([recipe_id, {
 			recipe_data,
 			scale
 		}]) => {
@@ -219,7 +220,7 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 			}, null)
 
 
-			const outputThroughput = optimizedLineData.target_output.find((target_output) => {
+			const outputThroughput = optimizationResults[activeTabId].target_output.find((target_output) => {
 				return selectedPrimaryItem?.product.id === target_output.item_id
 			})?.amount || 0;
 
@@ -247,6 +248,8 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 			outputGauge: number
 		} => item !== null); // Remove null entries
 
+		setFallbackNumberOfRecipesToRender(nonNormalizedActiveRecipes.length)
+
 		return nonNormalizedActiveRecipes.map((nonNormalizedActiveRecipe) => {
 			return {
 				...nonNormalizedActiveRecipe,
@@ -254,7 +257,7 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 				outputGauge: nonNormalizedActiveRecipe.outputGauge / maxThroughput
 			}
 		}).sort((a, b) => b.totalThroughput - a.totalThroughput)
-	}, [optimizedLineData, recipesGroupedDetail]);
+	}, [optimizationResults, recipesGroupedDetail, activeTabId]);
 
 	return (
 		<AppropriateDrawerType open={isActiveRecipeDrawerOpen} activeRecipeDrawerWidth={activeRecipeDrawerWidth}
@@ -298,8 +301,7 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 			}}
 			>
 
-				{
-					!(loading || loadingOptimization || (!activeRecipes || activeRecipes?.length === 0)) ? activeRecipes.map(({
+				{!(loading || calculatingResult || (!activeRecipes || activeRecipes?.length === 0)) ? activeRecipes.map(({
 																																																											selectedRecipe,
 																																																											remainingRecipes,
 																																																											recipeGroupName,
@@ -328,8 +330,8 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 								/>
 							</ListItem>
 						))
-						:
-						Array.from({length: 12}).map((_, index) => (
+						: calculatingResult ?
+						Array.from({length: fallbackNumberOfRecipesToRender}).map((_, index) => (
 							<ListItem
 								key={index}
 							>
@@ -340,7 +342,8 @@ const ActiveRecipeList: React.FC<ActiveRecipeListProps> = ({
 									animation="wave"
 								/>
 							</ListItem>
-						))
+
+						)) : <></>
 				}
 			</List>
 		</AppropriateDrawerType>

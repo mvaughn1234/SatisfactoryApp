@@ -2,22 +2,23 @@ import {OptimizationResult, ProductionLine} from '../types/ProductionLine';
 import {RecipeConfigs} from "./UserConfigs.ts";
 import { ItemDetail } from "../types/Item";
 import { RecipeDetail, RecipeGroupDetail } from "../types/Recipe";
+import {DebouncedFunc} from "lodash";
 
 export interface ProductionLineState {
-	productionLines: ProductionLine[];
-	activeTabId: string;
-	loadingProductionLines: boolean;
-	optimizedLineData: OptimizationResult | undefined;
-	loadingOptimization: boolean;
-	calculationError: string | null; // match your code
+	productionLines: Record<string, ProductionLine>;
+	activeTabId: string | null;
+	loadingState: boolean;
+	optimizationResults: Record<string, OptimizationResult>;
+	syncInProgress: boolean;
+	calculatingResult: boolean;
 }
 
 export interface ProductionLineUpdate {
-	setActiveTabId: (id: string) => void;
+	handleTabChange: (id: string) => void;
 	addProductionLine: (name: string) => void;
 	updateProductionLine: (id: string, updates: Partial<ProductionLine>) => void;
 	removeProductionLine: (id: string) => void;
-	queueCalculation: () => void;
+	queueRecalculation: DebouncedFunc<(lineId: string) => Promise<void>>;
 }
 
 // RecipeConfigState for the context

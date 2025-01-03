@@ -208,6 +208,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 				exit => exit
 					.remove()
 			)
+		const darkLabels = ["Nitrogen Gas", "Sulfur"]
 
 		svg.selectAll<SVGTextElement, ProcessedDataResult>(".bar-label")
 			.data(processedData, (d) => d.name)
@@ -228,7 +229,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					.attr("fill", (d) => {
 						const barWidth = xScale(d.quantity) - margin.left;
 						const textWidth = (d.quantity.toFixed(2).length + 4.5) * 7.5; // + 4 for ' / min', 7.5 corresponding to 14px font size
-						return barWidth > textWidth ? (d.name === "Nitrogen Gas" ? theme.palette.text.primary : "white") : theme.palette.text.primary; // White for inside, dark for outside
+						return barWidth > textWidth ? (darkLabels.find((label) => d.name === label) ? theme.palette.grey[800] : "white") : theme.palette.text.primary; // White for inside, dark for outside
 					})
 					.attr("font-size", "14px")
 					.attr("font-weight", "bold") // Optional: Make it bold for better visibility
@@ -249,7 +250,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					.attr("fill", (d) => {
 						const barWidth = xScale(d.quantity) - margin.left;
 						const textWidth = (d.quantity.toFixed(2).length + 4.5) * 7.5; // + 4 for ' / min', 7.5 corresponding to 14px font size
-						return barWidth > textWidth ? (d.name === "Nitrogen Gas" ? theme.palette.text.primary : "white") : theme.palette.text.primary; // White for inside, dark for outside
+						return barWidth > textWidth ? (darkLabels.find((label) => d.name === label) ? theme.palette.grey[800] : "white") : theme.palette.text.primary; // White for inside, dark for outside
 					})
 					.text((d) => `${d.quantity.toFixed(2).toLocaleString()} / min`),
 				exit => exit

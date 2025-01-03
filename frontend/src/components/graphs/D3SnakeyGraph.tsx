@@ -503,7 +503,7 @@ const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
 							// return linkColor;
 						})
 						.attr("d", d => d.path)
-						.select("title").text(d => `${getNodeText(d.source, "name")}  → ${d.item_name} → ${getNodeText(d.target, "name")}\n${format(d.value)} /min`)
+						.select("title").text(d => `${getNodeText(d.source, "name")} → ${d.item_name} → ${getNodeText(d.target, "name")}\n${format(d.value)} /min`)
 					return update
 				}
 				,

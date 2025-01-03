@@ -1,12 +1,13 @@
 import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
-import {useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
+import {useProductionLineState, useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
 import {useRecipeConfigState, useRecipeConfigUpdate} from "../store/RecipeConfigStore.tsx";
 
 export const usePreferredRecipe = (recipe_id: number) => {
 	const {loading, recipesGroupedDetail} = useAppStaticData();
 	const {updateRecipesPreferred} = useRecipeConfigUpdate();
 	const {loadingRecipeConfigs, recipeConfigs} = useRecipeConfigState();
-	const {queueCalculation} = useProductionLineUpdate()
+	const {queueRecalculation} = useProductionLineUpdate();
+	const {activeTabId} = useProductionLineState();
 
 	if (loading || loadingRecipeConfigs) {
 		return {
@@ -60,7 +61,9 @@ export const usePreferredRecipe = (recipe_id: number) => {
 			// This depends on how your store expects to handle "no preferred recipe"
 			allRecipes.forEach((r) => r && updateRecipesPreferred(r.id, r.id));
 		}
-		queueCalculation()
+		if (activeTabId) {
+			queueRecalculation(activeTabId);
+		}
 	};
 
 	return {

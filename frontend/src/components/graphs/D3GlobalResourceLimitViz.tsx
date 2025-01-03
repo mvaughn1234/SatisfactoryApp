@@ -173,6 +173,9 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 							// d.quantity <= d.limit ? `url(#${gradientId})` : "#ff8c8c"
 							d.quantity <= d.limit ? d.gradient[1] : "#ff8c8c"
 						)
+						.attr("stroke", (d) =>
+							d.quantity <= d.limit ? d.gradient[2] : "#ff6666"
+						)
 						// Give it some initial angles (maybe zero-length)
 						.attr("d", (d) => fgArcGen({ ...d, startAngle: 0.5 * 2 * Math.PI, endAngle: 0.5 * 2 * Math.PI }) ?? "")
 						.each(function () {
@@ -209,6 +212,9 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 								endAngle: iEnd(t),
 							}) ?? "";
 						})
+						.attr("stroke", (d) =>
+							d.quantity <= d.limit ? d.gradient[2] : "#ff6666"
+						)
 						.on("end", function (d) {
 							const path = this as ArcPathElement;
 							path._oldEndAngle = d.endAngle;

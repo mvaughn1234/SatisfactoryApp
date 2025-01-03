@@ -1,6 +1,7 @@
 // ./src/layouts/CalculatorLayout
 import {Box, Fab, Tab, Tabs} from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import Skeleton from "@mui/material/Skeleton";
 import {styled, useTheme} from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 // import useMediaQuery from "@mui/material/useMediaQuery";
@@ -33,11 +34,12 @@ const Item = styled(Box)(({theme}) => ({
 }));
 import ListAltIcon from '@mui/icons-material/ListAlt';
 const CalculatorLayout: React.FC = () => {
-	const {productionLines, activeTabId, loadingProductionLines, optimizedLineData} = useProductionLineState();
-	const {setActiveTabId, addProductionLine} = useProductionLineUpdate();
+	const {productionLines, activeTabId, loadingState, calculatingResult, optimizationResults} = useProductionLineState();
+	const {handleTabChange, addProductionLine} = useProductionLineUpdate();
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [activeRecipeListOpen, setActiveRecipeListOpen] = useState<boolean>(false);
 	const [graphHeight, setGraphHeight] = useState<number>(500);
+	const [displayLoading, setDisplayLoading] = useState<boolean>(true);
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
@@ -49,6 +51,15 @@ const CalculatorLayout: React.FC = () => {
 		}
 	}, [isMobile])
 
+	useEffect(() => {
+		setDisplayLoading(true)
+	}, [])
+
+	useEffect(() => {
+		if (!calculatingResult) {
+			setDisplayLoading(false)
+		}
+	}, [calculatingResult])
 	// const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 	const handleDrawerOpen = () => {
@@ -63,8 +74,8 @@ const CalculatorLayout: React.FC = () => {
 		setActiveRecipeListOpen(!activeRecipeListOpen);
 	}
 
-	const handleTabChange = (_: React.SyntheticEvent, newValue: string) => {
-		setActiveTabId(`${newValue}`);  // Update active tab in global state
+	const handleChangeTab = (_: React.SyntheticEvent, newValue: number) => {
+		handleTabChange(`${newValue}`);  // Update active tab in global state
 	};
 
 	const handleAddTab = () => {
@@ -120,15 +131,15 @@ const CalculatorLayout: React.FC = () => {
 			>
 
 				{/*	/!* Tabs for production lines *!/*/}
-				{!loadingProductionLines &&
+				{(!loadingState && activeTabId) &&
                 <Tabs
                     value={parseInt(activeTabId, 10)}
-                    onChange={handleTabChange}
+                    onChange={handleChangeTab}
                     sx={{borderBottom: 1, borderColor: 'divider'}}
                     variant="scrollable"
                     scrollButtons
                 >
-									{productionLines.map((line) => (
+									{Object.values(productionLines).map((line) => (
 										<Tab key={line.id} label={line.name} value={parseInt(line.id, 10)}/>
 									))}
                     <Tab
@@ -155,10 +166,22 @@ const CalculatorLayout: React.FC = () => {
 							<Item>
 								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
 
-								{optimizedLineData ? (
-									<D3SnakeyGraphContainer data={optimizedLineData} maxHeight={graphHeight}/>
+								{!displayLoading ? (activeTabId && optimizationResults[activeTabId]?.production_line ? (
+									<D3SnakeyGraphContainer data={optimizationResults[activeTabId]} maxHeight={graphHeight}/>
 								) : (
-									"No data available"
+									<Skeleton
+										variant="rectangular"
+										width="auto"
+										height={graphHeight}
+										animation={false}
+									/>
+								)) : (
+									<Skeleton
+										variant="rectangular"
+										width="auto"
+										height={graphHeight}
+										animation="wave"
+									/>
 								)}
 								{/*</Box>*/}
 							</Item>
@@ -168,10 +191,47 @@ const CalculatorLayout: React.FC = () => {
 						<Grid size={{xs: 12, sm: 12, md: 6, lg: 4, xl: 4}}>
 							<Item>
 								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
-								{optimizedLineData ? (
-									<D3RawPieChartContainer data={optimizedLineData} maxHeight={graphHeight}/>
+								{!displayLoading ? (activeTabId && optimizationResults[activeTabId]?.production_line ? (
+									<D3NewResourceUseGraphContainer data={optimizationResults[activeTabId]} maxHeight={graphHeight}/>
 								) : (
-									"No data available"
+									<Skeleton
+										variant="rectangular"
+										width="auto"
+										height={graphHeight}
+										animation={false}
+									/>
+								)) : (
+									<Skeleton
+										variant="rectangular"
+										width="auto"
+										height={graphHeight}
+										animation="wave"
+									/>
+									)}
+								{/*</Box>*/}
+							</Item>
+						</Grid>
+
+						{/* Resource Use Graph - Takes 3/12 of the Grid */}
+						<Grid size={{xs: 12, sm: 12, md: 6, lg: 4, xl: 4}}>
+							<Item>
+								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
+								{!displayLoading ? (activeTabId && optimizationResults[activeTabId]?.production_line ? (
+									<D3RawPieChartContainer data={optimizationResults[activeTabId]} maxHeight={graphHeight}/>
+								) : (
+									<Skeleton
+										variant="rectangular"
+										width="auto"
+										height={graphHeight}
+										animation={false}
+									/>
+								)) : (
+									<Skeleton
+										variant="rectangular"
+										width="auto"
+										height={graphHeight}
+										animation="wave"
+									/>
 								)}
 								{/*</Box>*/}
 							</Item>
@@ -181,24 +241,23 @@ const CalculatorLayout: React.FC = () => {
 						<Grid size={{xs: 12, sm: 12, md: 6, lg: 4, xl: 4}}>
 							<Item>
 								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
-								{optimizedLineData ? (
-									<D3NewResourceUseGraphContainer data={optimizedLineData} maxHeight={graphHeight}/>
+								{!displayLoading ? (activeTabId && optimizationResults[activeTabId]?.production_line ? (
+									<D3GlobalResourceLimitViz data={optimizationResults[activeTabId]} maxHeight={graphHeight}/>
 								) : (
-									"No data available"
-								)}
-								{/*</Box>*/}
-							</Item>
-						</Grid>
-
-						{/* Resource Use Graph - Takes 3/12 of the Grid */}
-						<Grid size={{xs: 12, sm: 12, md: 6, lg: 4, xl: 4}}>
-							<Item>
-								{/*<Box sx={{width: "100%", height: "100%"}}>*/}
-								{optimizedLineData ? (
-									<D3GlobalResourceLimitViz data={optimizedLineData} maxHeight={graphHeight}/>
-								) : (
-									"No data available"
-								)}
+									<Skeleton
+										variant="rectangular"
+										width="auto"
+										height={graphHeight}
+										animation={false}
+									/>
+								)) : (
+									<Skeleton
+										variant="rectangular"
+										width="auto"
+										height={graphHeight}
+										animation="wave"
+									/>
+									)}
 								{/*</Box>*/}
 							</Item>
 						</Grid>

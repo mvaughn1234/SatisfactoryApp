@@ -3,8 +3,7 @@ import React, {createContext, ReactNode, useCallback, useContext, useEffect, use
 import {fetchLineOptimizationCalculation} from "../services/calculatorService.ts";
 import {ProductionLineState, ProductionLineUpdate} from "../types/ContextStoreInterfaces.ts";
 import {OptimizationResult, ProductionLine} from '../types/ProductionLine';
-import {useFetchProductionLines} from '../hooks/userHooks';
-import {updateUserProductionLine} from '../services/userConfigService';
+import {fetchProductionLines, updateUserProductionLine} from '../services/userConfigService';
 
 // Create State and Update Contexts
 const ProductionLineStateContext = createContext<ProductionLineState | null>(null);
@@ -29,159 +28,232 @@ interface ProductionLineProviderProps {
 
 // Provider Component
 export const ProductionLineProvider: React.FC<ProductionLineProviderProps> = ({children}) => {
-	const [productionLines, setProductionLines] = useState<ProductionLine[]>([]);
-	const [activeTabId, setActiveTabId] = useState<string>('0'); // Default to first tab
-	const [loadingProductionLines, setLoadingProductionLines] = useState<boolean>(true);
-	const [optimizedLineData, setOptimizedLineData] = useState<OptimizationResult | undefined>(undefined);
-	const [calculationError, setCalculationError] = useState<string | null>(null); // Track fetch errors
-	const [loadingOptimization, setLoadingOptimization] = useState<boolean>(true);
-	const [queuedCalculation, setQueuedCalculation] = useState<boolean>(false);
+	const [productionLines, setProductionLines] = useState<Record<string, ProductionLine>>({});
+	const [activeTabId, setActiveTabId] = useState<string | null>(null);
+	const [updateError, setUpdateError] = useState<string | null>(null);
+	const [syncInProgress, setSyncInProgress] = useState<boolean>(false);
+	const [loadingState, setLoadingState] = useState<boolean>(true);
+	const [calculatingResult, setCalculatingResult] = useState<boolean>(true);
+	const [optimizationResults, setOptimizationResults] = useState<Record<string, OptimizationResult>>({});
 
-	const {fetchedProductionLines} = useFetchProductionLines();
+	const calculateOptimization = useCallback(
+		debounce(async (lineId: string) => {
+			const productionLine = productionLines[lineId];
 
-	// Fetch optimization results and store in optimized line data
-	const fetchOptimizationData = useCallback(
-		debounce(async (activeTabId: string) => {
-			setLoadingOptimization(true);
-			try {
-				if (activeTabId) {
-					const results = await fetchLineOptimizationCalculation(activeTabId);
-					setOptimizedLineData(results ?? undefined);
-					setCalculationError(null); // Clear any previous errors
-					setLoadingOptimization(false);
-				}
-			} catch (error: unknown) {
-				if (error instanceof Error) {
-					console.error('Error fetching optimization data:', error);
-					setCalculationError(error.message || 'Unknown error');
-				} else {
-					console.error('Unknown error:', error);
-					setCalculationError('Unknown error');
-				}
+			// Skip calculation if no production line or no production targets
+			if (!productionLine || productionLine.production_targets.length === 0) {
+				return;
 			}
-		}, 300), // Debounce delay (300ms)
-		[]
+
+			setCalculatingResult(true);
+			try {
+				const results = await fetchLineOptimizationCalculation(lineId);
+				setOptimizationResults((prev) => ({ ...prev, [lineId]: results }));
+			} catch (error) {
+				console.error(`Error calculating optimization for line ${lineId}:`, error);
+			} finally {
+				setCalculatingResult(false);
+			}
+		}, 300),
+		[productionLines]
 	);
 
+	const queueRecalculation = useCallback(
+		debounce(async (lineId: string) => {
+			if (!productionLines[lineId]) return;
+
+			setCalculatingResult(true);
+			try {
+				await calculateOptimization(lineId);
+			} catch (error) {
+				console.error(`Error recalculating optimization for line ${lineId}:`, error);
+			} finally {
+				setCalculatingResult(false);
+			}
+		}, 300),
+		[productionLines, calculateOptimization]
+	);
+
+	// Initial data fetch
 	useEffect(() => {
-		if (queuedCalculation) {
-			setQueuedCalculation(false)
-			console.log('queueing calculation')
-			fetchOptimizationData(activeTabId);
-			// Cleanup the debounce function on unmount
-			// return () => fetchOptimizationData.cancel();
-		}
-	}, [activeTabId, queuedCalculation]);
+		async function fetchInitialData() {
+			setLoadingState(true);
+			try {
+				const fetchedLines = await fetchProductionLines();
+				setProductionLines(fetchedLines);
 
-	// Trigger the debounced fetch on production line changes
+				// Default to the first line as active tab
+				const initialTabId = Object.keys(fetchedLines)[0] || null;
+				setActiveTabId(initialTabId);
+				setLoadingState(false);
+
+				if (initialTabId) {
+					await calculateOptimization(initialTabId);
+				}
+			} catch (error) {
+				console.error("Error fetching initial production lines:", error);
+			} finally {
+				setLoadingState(false);
+			}
+		}
+
+		fetchInitialData();
+	}, []);
+
+	// React to activeTabId changes
 	useEffect(() => {
-		fetchOptimizationData(activeTabId);
-		// Cleanup the debounce function on unmount
-		return () => fetchOptimizationData.cancel();
-	}, [activeTabId, productionLines, fetchOptimizationData]);
+		if (!activeTabId) return;
 
-	// Fetch production lines on mount
-	useEffect(() => {
-		setLoadingProductionLines(fetchedProductionLines.loading);
+		const currentTabId = activeTabId as string;
 
-		if (!fetchedProductionLines.loading && fetchedProductionLines.data) {
-			setProductionLines(fetchedProductionLines.data);
+		async function handleActiveTabChange() {
+			setLoadingState(true);
+			try {
+				const currentLine = productionLines[currentTabId];
+				if (!currentLine) {
+					const fetchedLines = await fetchProductionLines();
+					setProductionLines(fetchedLines);
+				}
+
+				if (!optimizationResults[currentTabId]) {
+					await calculateOptimization(currentTabId);
+				}
+			} catch (error) {
+				console.error("Error handling active tab change:", error);
+			} finally {
+				setLoadingState(false);
+			}
 		}
 
-		if (fetchedProductionLines.error) {
-			console.error('Error fetching production lines:', fetchedProductionLines.error);
-		}
-	}, [fetchedProductionLines]);
+		handleActiveTabChange();
+	}, [activeTabId, productionLines, optimizationResults]);
 
-	const queueCalculation = useCallback(() => {
-		setQueuedCalculation(true);
-	}, [queuedCalculation]);
+	const handleTabChange = useCallback((nextTabId: string) => {
+		setLoadingState(true)
+		setActiveTabId(nextTabId);
+	}, [activeTabId])
 
 	// Add a new production line
-	const addProductionLine = useCallback((name: string) => {
-		const new_line_id = `${productionLines.length}`
+	const addProductionLine = useCallback(async (name: string) => {
+		const new_line_id = `${productionLines.length}`;
 		const newLine: ProductionLine = {
-			id: new_line_id, // Use timestamp for unique ID
+			id: new_line_id,
 			name,
 			production_targets: [],
 			input_customizations: [],
 			recipe_customizations: [],
 		};
-		setProductionLines((prevLines) => [...prevLines, newLine]);
+
+		setProductionLines((prev) => ({
+			...prev,
+			[new_line_id]: newLine,
+		}));
 		setActiveTabId(newLine.id);
 
-		(async () => {
-			try {
-				await updateUserProductionLine(new_line_id, newLine);
-			} catch (err) {
-				console.error(`Error updating production line ${new_line_id}:`, err);
-			}
-		})();
+		setSyncInProgress(true);
+		try {
+			await updateUserProductionLine(new_line_id, newLine);
+			const refreshedLines = await fetchProductionLines();
+			setProductionLines(refreshedLines);
+			setUpdateError(null); // Clear any errors
+			setSyncInProgress(false);
+
+			// Trigger recalculation for the updated line
+			await calculateOptimization(new_line_id);
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : 'Failed to add production line';
+			setUpdateError(errorMessage);
+			console.error(`Error adding production line ${new_line_id}:`, err);
+		} finally {
+			setSyncInProgress(false);
+		}
 	}, [productionLines]);
 
 	// Update an existing production line
-	const updateProductionLine = useCallback((id: string, updates: Partial<ProductionLine>) => {
-		setProductionLines((prevLines) => {
-			const updatedLines = prevLines.map((line) =>
-				line.id === id ? { ...line, ...updates } : line
-			);
+	const updateProductionLine = useCallback(
+		debounce(async (lineId: string, updates: Partial<ProductionLine>) => {
+			const updatedLine = { ...productionLines[lineId], ...updates };
+			setProductionLines((prev) => ({
+				...prev,
+				[lineId]: updatedLine,
+			}));
 
-			// Perform backend update with the updated state
-			(async () => {
-				try {
-					const activeLine = updatedLines.find((line) => line.id === id);
-					if (activeLine) {
-						await updateUserProductionLine(id, activeLine);
-					}
-				} catch (err) {
-					console.error(`Error updating production line ${id}:`, err);
-				}
-			})();
-
-			return updatedLines;
-		});
-	}, []);
-
-	const removeProductionLine = useCallback((id: string) => {
-		console.log("removing target product: ", id)
-		setProductionLines((prevLines) => prevLines.filter((line) => line.id !== id));
-
-		(async () => {
+			setSyncInProgress(true);
 			try {
-				await updateUserProductionLine(id, null); // Pass `null` or similar to delete
-			} catch (err) {
-				console.error(`Error removing production line ${id}:`, err);
+				await updateUserProductionLine(lineId, updatedLine);
+				const refreshedLines = await fetchProductionLines();
+				setProductionLines(refreshedLines);
+				setUpdateError(null); // Clear any errors
+				setSyncInProgress(false);
+
+				// Trigger recalculation if the active tab is updated
+				if (lineId === activeTabId) {
+					await calculateOptimization(lineId);
+				}
+			} catch (error) {
+				console.error(`Error syncing production line ${lineId}:`, error);
+			} finally {
+				setSyncInProgress(false);
 			}
-		})();
+		}, 300),
+		[productionLines]
+	);
+
+	const removeProductionLine = useCallback(async (lineId: string) => {
+		// Optimistically update local state
+		setProductionLines((prev) => {
+			const { [lineId]: _, ...remainingLines } = prev;
+			return remainingLines;
+		});
+
+		// Adjust active tab if the removed line was active
+		if (lineId === activeTabId) {
+			const remainingLineIds = Object.keys(productionLines).filter((id) => id !== lineId);
+			setActiveTabId(remainingLineIds[0] || null); // Set a new active tab, or null if none
+		}
+
+		setSyncInProgress(true); // Start sync
+		try {
+			// Sync with backend
+			await updateUserProductionLine(lineId, null);
+			const refreshedLines = await fetchProductionLines(); // Get updated lines from backend
+			setProductionLines(refreshedLines); // Update local state with backend data
+			setUpdateError(null); // Clear errors
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : "Failed to remove production line";
+			setUpdateError(errorMessage);
+			console.error(`Error removing production line ${lineId}:`, err);
+		} finally {
+			setSyncInProgress(false); // End sync
+		}
 	}, []);
+
 
 	// Memoized state and update values
-	const memoizedState = useMemo(
-		() => ({
-			productionLines,
-			activeTabId,
-			loadingProductionLines,
-			optimizedLineData,
-			loadingOptimization,
-			calculationError
-		}),
-		[productionLines, activeTabId, loadingProductionLines, optimizedLineData, loadingOptimization, calculationError]
-	);
+	const memoizedState = useMemo(() => ({
+		productionLines,
+		activeTabId,
+		optimizationResults,
+		loadingState,
+		syncInProgress,
+		calculatingResult
+	}), [productionLines, activeTabId, optimizationResults, loadingState, syncInProgress, calculatingResult]);
 
 	const memoizedUpdateFunctions = useMemo(
 		() => ({
-			setActiveTabId,
+			handleTabChange,
 			addProductionLine,
 			updateProductionLine,
 			removeProductionLine,
-			queueCalculation
+			queueRecalculation
 		}),
-		[addProductionLine, updateProductionLine, removeProductionLine, queueCalculation]
+		[handleTabChange, addProductionLine, updateProductionLine, removeProductionLine, queueRecalculation]
 	);
 
 	return (
 		<ProductionLineStateContext.Provider value={memoizedState}>
 			<ProductionLineUpdateContext.Provider value={memoizedUpdateFunctions}>
+				{updateError && <div className="error">{updateError}</div>}
 				{children}
 			</ProductionLineUpdateContext.Provider>
 		</ProductionLineStateContext.Provider>

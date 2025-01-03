@@ -1,7 +1,10 @@
-import {Paper} from "@mui/material";
+import {Box, Paper} from "@mui/material";
 import Divider from "@mui/material/Divider";
+import Grid from "@mui/material/Grid2";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useMemo} from 'react';
+import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
 import {useProductionLineState, useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
 import {ItemSummary} from "../types/Item";
 import {ProductionTarget} from '../types/ProductionLine';
@@ -18,103 +21,147 @@ const MemoizedSelectorGroup = React.memo(ProductionItemSelectorGroup, (prevProps
 
 
 const ProductionTargetsGroup: React.FC = () => {
-	const { activeTabId, productionLines } = useProductionLineState();
-	const { updateProductionLine } = useProductionLineUpdate();
-	const [productionTargets, setProductionTargets] = useState<ProductionTarget[]>([]);
-	const [pendingUpdates, setPendingUpdates] = useState<ProductionTarget[] | null>(null);
+	const {activeTabId, productionLines, loadingState} = useProductionLineState();
+	const {updateProductionLine} = useProductionLineUpdate();
+	const {itemsComponentsDetail} = useAppStaticData();
 
-	// Fetch production targets when the active tab changes
-	useEffect(() => {
-		console.log("fetch targets when active tab changes")
-		if (activeTabId) {
-			const activeLine = productionLines.find((line) => line.id === activeTabId);
-			const storedProductionTargets = activeLine?.production_targets || [];
-			setProductionTargets(storedProductionTargets);
-		}
-	}, [activeTabId]);
+	const activeTargets = useMemo(() => {
+		const activeLine = productionLines[activeTabId ?? ''];
+		return activeLine ? activeLine.production_targets : [];
+	}, [activeTabId, productionLines]);
 
-	// Synchronize pending updates with the backend
-	useEffect(() => {
-		console.log("pending updates")
-		if (pendingUpdates) {
-			const debouncedUpdate = setTimeout(() => {
-				updateProductionLine(activeTabId, { production_targets: pendingUpdates });
-				setPendingUpdates(null); // Clear pending updates
-			}, 200); // Debounce delay
-
-			return () => clearTimeout(debouncedUpdate); // Cleanup if updates change
-		}
-	}, [pendingUpdates, activeTabId, updateProductionLine]);
+	const availableTargets = useMemo(() => {
+		const activeItemIds = activeTargets.map((activeProductionTarget) => activeProductionTarget.product?.id)
+			.filter((item) => item!==null)
+		return itemsComponentsDetail.filter((item) => !activeItemIds.find((activeItemId) => item.id === activeItemId))
+	}, [activeTargets, itemsComponentsDetail])
 
 	// Add a new target
-	const handleAddTarget = (product: ItemSummary | null, rate: number | null) => {
-		console.log("onAdd")
+	const handleAddTarget = useCallback((product: ItemSummary | null, rate: number | null) => {
 		if (product && rate !== null) {
 			const newTarget: ProductionTarget = {
-				id: `${activeTabId}.${product.id}`,
+				id: `${activeTabId}-${product.id}`,
 				product,
 				rate,
 			};
-			const updatedTargets = [...productionTargets, newTarget];
-			setProductionTargets(updatedTargets); // Update local state
-			setPendingUpdates(updatedTargets); // Queue for backend sync
+			const updatedTargets = [...activeTargets, newTarget];
+			updateProductionLine(activeTabId!, {production_targets: updatedTargets});
 		}
-	};
+	}, [activeTabId, activeTargets, updateProductionLine]);
 
 	// Handle edits from child components
-	const handleEditTarget = (id: string, product: ItemSummary | null, rate: number | null) => {
-		console.log("onEdit")
-		const updatedTargets = productionTargets.map((target) =>
-			target.id === id ? { ...target, product, rate } : target
+	const handleEditTarget = useCallback((id: string, product: ItemSummary | null, rate: number | null) => {
+		const updatedTargets = activeTargets.map((target) =>
+			target.id === id ? {...target, product, rate} : target
 		);
-		setProductionTargets(updatedTargets); // Update local state
-		setPendingUpdates(updatedTargets); // Queue for backend sync
-	};
+		updateProductionLine(activeTabId!, {production_targets: updatedTargets});
+	}, [activeTabId, activeTargets, updateProductionLine]);
 
-	const selectedLine = productionLines?.find((line) => line['id'] === activeTabId);
+	const handleRemoveTarget = useCallback(
+		(id: string) => {
+			if (!activeTabId) return;
+
+			// Find the active production line
+			const activeLine = productionLines[activeTabId];
+			if (!activeLine) return;
+
+			// Filter out the target to remove
+			const updatedTargets = activeLine.production_targets.filter((target) => target.id !== id);
+
+			// Update the production line locally and sync to the backend
+			updateProductionLine(activeTabId, {production_targets: updatedTargets});
+		},
+		[activeTabId, productionLines, updateProductionLine]);
+	const colWidth = { xs: 12, sm: 12, md: 6, lg: 4, xl: 3 };
 
 	return (
 		<Stack>
-			{(selectedLine?.production_targets?.length || 0) > 0 && (
-				<Paper
-					elevation={1}
-					sx={{
-						px: 0,
-						pt: 1,
-						pb: 1,
-						mb: 2,
-						display: 'flex',
-						alignItems: 'flex-end',
-						borderRadius: 0,
-						backgroundColor: 'background.paper',
-						width: '100%',
-					}}
-				>
-					<Stack direction="row">
-						<Stack>
-							{/* Map the existing production targets */}
-							{selectedLine?.production_targets.map((target) => (
-								<MemoizedSelectorGroup
-									key={`${activeTabId}-${target.id}`}
-									target={target}
-									isDummy={false}
-									onEdit={handleEditTarget}
-								/>
-							))}
-						</Stack>
+          <Paper
+              elevation={1}
+              sx={{
+								px: 0,
+								pt: 1,
+								pb: 1,
+								mb: 2,
+								// display: 'flex',
+								// alignItems: 'flex-end',
+								flexGrow: 1,
+								borderRadius: 0,
+								backgroundColor: 'background.paper',
+								// width: '100%',
+							}}
+          >
+              <Grid
+                  container
+                  direction="row"
+								// sx={{justifyContent: 'flex-start', alignItems: 'flex-start'}}
+                  columns={{xs: 12}}
+              >
+								{/* Map the existing production targets */}
+								{(!loadingState && activeTargets) ? activeTargets.map((target) => (
+										<Grid key={`${activeTabId}-${target.id}`} size={colWidth}
+													sx={(theme) => ({
+														'--Grid-borderWidth': '1px',
+														// borderTop: 'var(--Grid-borderWidth) solid',
+														borderColor: 'divider',
+														'& > div': {
+															borderRight: 'var(--Grid-borderWidth) solid',
+															// borderBottom: 'var(--Grid-borderWidth) solid',
+															borderColor: 'divider',
+															...Object.keys(colWidth).reduce((result, key) => ({
+																	...result,
+																// @ts-expect-error Key type inference not working
+																[`&:nth-of-type(${12 / colWidth[key]}n)`]: {
+																	// @ts-expect-error Key type inference not working
+																		[theme.breakpoints.only(key)]: {
+																			borderRight: 'none',
+																		},
+																	},
+																}),	{}),
+														},
+													})}
+										>
+											<Box>
+												<MemoizedSelectorGroup
+													target={target}
+													isDummy={false}
+													onEdit={handleEditTarget}
+													availableItems={itemsComponentsDetail}
+													onRemove={handleRemoveTarget}
+												/>
+											</Box>
+										</Grid>
+									))
+									:
+									<Grid size={colWidth}>
+										<Box>
+											<Skeleton
+												variant="rectangular"
+												// width="200px"
+												sx={{mx: 1}}
+												height={50}
+												animation="wave"
+											/>
+										</Box>
+									</Grid>
+								}
+								{activeTabId &&
+                    <Grid size={colWidth}>
+                        <Box>
+                            <ProductionItemSelectorGroup
+                                key={`dummy-${activeTabId}:${activeTargets.length}`}
+                                target={{id: 'dummy', product: null, rate: null}}
+                                isDummy={true}
+                                onAdd={handleAddTarget}
+                                availableItems={availableTargets}
+                            />
+                        </Box>
+                    </Grid>
+								}
+								{/*<Divider orientation="vertical" flexItem/>*/}
+              </Grid>
 
-						<Divider orientation="vertical" flexItem />
-					</Stack>
-				</Paper>
-			)}
-
-			{/* Dummy group for adding new targets */}
-			<ProductionItemSelectorGroup
-				key={`dummy-${productionTargets.length}`}
-				target={{ id: 'dummy', product: null, rate: null }}
-				isDummy={true}
-				onAdd={handleAddTarget}
-			/>
+          </Paper>
 		</Stack>
 	);
 };
