@@ -37,14 +37,15 @@ export const ProductionLineProvider: React.FC<ProductionLineProviderProps> = ({c
 	const [optimizationResults, setOptimizationResults] = useState<Record<string, OptimizationResult>>({});
 
 	const calculateOptimization = useCallback(
-		debounce(async (lineId: string) => {
-			const productionLine = productionLines[lineId];
+		debounce(async (lineId: string, updatedLine?: ProductionLine) => {
+			const productionLine = updatedLine ? updatedLine : productionLines[lineId];
 
 			// Skip calculation if no production line or no production targets
 			if (!productionLine || productionLine.production_targets.length === 0) {
+				console.log("Skipping calculation: ", productionLine)
 				return;
 			}
-
+			console.log("trying calculation")
 			setCalculatingResult(true);
 			try {
 				const results = await fetchLineOptimizationCalculation(lineId);
@@ -188,7 +189,7 @@ export const ProductionLineProvider: React.FC<ProductionLineProviderProps> = ({c
 
 				// Trigger recalculation if the active tab is updated
 				if (lineId === activeTabId) {
-					await calculateOptimization(lineId);
+					await calculateOptimization(lineId, refreshedLines[lineId]);
 				}
 			} catch (error) {
 				console.error(`Error syncing production line ${lineId}:`, error);
