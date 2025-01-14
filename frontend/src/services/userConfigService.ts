@@ -1,6 +1,7 @@
 // /src/services/userConfigService.ts
 
 import {ProductionLine} from "../types/ProductionLine.ts";
+import {RecipeConfigs} from "../types/UserConfigs.ts";
 import {getUserKey} from "./userKeyUtility.ts";
 import {USER_CONFIG_API_URL} from '../constants/constants';
 
@@ -24,14 +25,13 @@ export const updateUserRecipeConfig = async (config: any) => {
 	return response.json();
 };
 
-export const fetchUserRecipeConfig = async () => {
+export async function fetchUserRecipeConfigs(): Promise<RecipeConfigs> {
 	const userKey = getUserKey();
-
 	const response = await fetch(`${USER_CONFIG_API_URL}/config/recipes`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${userKey}`, // Use Authorization header for security
+			'Authorization': `Bearer ${userKey}`,
 		},
 	});
 
@@ -39,8 +39,9 @@ export const fetchUserRecipeConfig = async () => {
 		throw new Error(`Failed to fetch recipe configs: ${response.statusText}`);
 	}
 
-	return response.json();
-};
+	// The returned JSON is shaped like { [id: number]: RecipeConfigData }
+	return await response.json();
+}
 
 export const fetchProductionLines = async () => {
 	const userKey = getUserKey();

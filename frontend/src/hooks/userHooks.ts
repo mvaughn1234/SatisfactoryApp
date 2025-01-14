@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useState} from "react";
 import {
 	fetchProductionLines,
-	fetchUserRecipeConfig,
+	fetchUserRecipeConfigs,
 	updateUserProductionLine,
 	updateUserRecipeConfig
 } from "../services/userConfigService.ts";
@@ -16,7 +16,7 @@ export const useFetchUserRecipeConfig = () => {
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
-				const result = await fetchUserRecipeConfig();
+				const result = await fetchUserRecipeConfigs();
 				setData(result);
 			} catch (err) {
 				setError(err as Error);

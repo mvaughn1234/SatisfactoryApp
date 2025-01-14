@@ -8,14 +8,6 @@ const theme = (themeComponents?: ThemeOptions['components']) => createTheme({
 	typography,
 	shadows,
 	shape,
-	// palette: {
-	// 	primary: {
-	// 		main: '#FA9549',
-	// 	},
-	// 	secondary: {
-	// 		main: '#5F668C',
-	// 	},
-	// },
 	components: {
 		...themeComponents,
 	},

@@ -109,7 +109,7 @@ const useProcessSankeyData = (processedData: NodesAndLinksData): SankeyNodesAndL
 	return {nodes, links, processing}
 }
 
-const D3SnakeyGraph: React.FC<D3SnakeyGraphProps> = ({
+const D3SankeyGraph: React.FC<D3SnakeyGraphProps> = ({
 																											 data,
 																											 width,
 																											 maxHeight,
@@ -629,7 +629,7 @@ const D3SnakeyGraphContainer: React.FC<D3SnakeyGraphContainerProps> = ({data, ma
 					</FormGroup>
 				</Stack>
 				<div ref={containerRef}>
-					<D3SnakeyGraph data={data} width={width} maxHeight={maxHeight} alignment={alignment}
+					<D3SankeyGraph data={data} width={width} maxHeight={maxHeight} alignment={alignment}
 												 nodePadding={nodePadding / 100} toggleHighlightEffect={toggleHighlightEffect}/>
 				</div>
 			</Stack>

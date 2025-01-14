@@ -32,9 +32,3 @@ export interface ActiveRecipeGroup {
 	otherRecipes: RecipeDetail[]; // The other recipes in the same group
 	recipeGroupName: string; // Name of the group (e.g., "Iron Ingot")
 }
-
-export interface RecipeConfig {
-	learned: boolean;
-	excluded: boolean;
-	preferred: number;
-}

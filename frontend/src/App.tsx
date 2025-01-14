@@ -1,8 +1,11 @@
 import {Box, CssBaseline, useTheme} from '@mui/material';
-import React from 'react';
+import React, {useEffect} from 'react';
+import {useDispatch} from "react-redux";
 import {BrowserRouter as Router, Route, Routes} from "react-router-dom";
 import CalculatorLayout from "./layouts/CalculatorLayout.tsx";
 import MainLayout from "./layouts/MainLayout.tsx";
+import {fetchRecipes} from "./store/recipeSlice.ts";
+import {AppDispatch} from "./store/recipeConfigsStore.ts";
 import AppTheme from "./theme/AppTheme.tsx";
 
 // Props interface for the App component
@@ -12,6 +15,11 @@ interface AppProps {
 
 const App: React.FC<AppProps> = ({disableCustomTheme = false}) => {
 	const theme = useTheme();
+	const dispatch = useDispatch<AppDispatch>();
+
+	useEffect(() => {
+		dispatch(fetchRecipes());
+	}, [dispatch]);
 
 	return (
 		<AppTheme disableCustomTheme={disableCustomTheme}>

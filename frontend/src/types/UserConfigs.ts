@@ -6,6 +6,4 @@ export interface RecipeConfigData {
 	preferred?: number;
 }
 
-export interface RecipeConfigs {
-	[id: number]: RecipeConfigData
-}
+export type RecipeConfigs = Record<number, RecipeConfigData>;

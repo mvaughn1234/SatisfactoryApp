@@ -41,3 +41,8 @@ export interface StaticDataState {
 	loading: boolean;
 	error: string | null;
 }
+
+export interface RecipeConfigsState {
+	loading: boolean;
+	error: string | null;
+}

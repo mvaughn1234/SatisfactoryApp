@@ -1,33 +1,36 @@
 // ./src/components/RecipeListItem
 import {Box, Checkbox, ListItem, Tooltip, Typography} from '@mui/material';
 import Grid from '@mui/material/Grid2';
-import React, {useCallback, useState} from 'react';
+import React, {useCallback} from 'react';
+import {useDispatch, useSelector} from "react-redux";
 import {usePreferredRecipe} from "../hooks/usePreferredRecipe.ts";
-import {useRecipeConfigUpdate} from '../store/RecipeConfigStore.tsx';
+import {recipeConfigsSelectors, toggleRecipePropertyThunk} from "../store/recipeSlice.ts";
+import {AppDispatch, RootState} from "../store/recipeConfigsStore.ts";
 import {RecipeDetail} from "../types/Recipe.ts";
 
 interface RecipeListItemProps {
 	recipe: RecipeDetail;
-	conf_known: boolean;
-	conf_excluded: boolean;
+	conf_known?: boolean;
+	conf_excluded?: boolean;
 }
 
-const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf_excluded}) => {
-	const {updateRecipesKnown, updateRecipesExcluded} = useRecipeConfigUpdate();
-	const [known, setKnown] = useState<boolean>(conf_known);
-	const [excluded, setExcluded] = useState<boolean>(conf_excluded);
+const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known = true, conf_excluded = false}) => {
 	const {isPreferred, setPreferred, single} = usePreferredRecipe(recipe.id);
+	const dispatch = useDispatch<AppDispatch>();
+	const recipeConfig = useSelector((state: RootState) =>
+		recipeConfigsSelectors.selectById(state, recipe.id)
+	);
 
 
-	const handleLearnRecipe = useCallback(() => {
-		updateRecipesKnown(recipe.id);
-		setKnown((prev) => !prev);
-	}, [updateRecipesKnown, recipe.id]);
+	const handleLearnRecipe = () => {
+		const newValue = !recipeConfig.known;
+		dispatch(toggleRecipePropertyThunk({ id: recipe.id, property: 'known', newValue }));
+	};
 
-	const handleExcludeRecipe = useCallback(() => {
-		updateRecipesExcluded(recipe.id);
-		setExcluded((prev) => !prev);
-	}, [updateRecipesExcluded, recipe.id]);
+	const handleExcludeRecipe = () => {
+		const newValue = !recipeConfig.excluded;
+		dispatch(toggleRecipePropertyThunk({ id: recipe.id, property: 'excluded', newValue}));
+	};
 
 	const handlePreferredRecipe = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
 		setPreferred(event.target.checked);
@@ -40,7 +43,7 @@ const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf
 					<Grid size={2}>
 						<Tooltip title="Learned" placement="top" arrow>
 							{recipe.display_name.startsWith("Alternate") ?
-								<Checkbox checked={known} onChange={handleLearnRecipe} size="small"/>
+								<Checkbox checked={conf_known} onChange={handleLearnRecipe} size="small"/>
 								:
 								<Checkbox checked={true} disabled onChange={handleLearnRecipe} size="small"/>
 							}
@@ -51,7 +54,7 @@ const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known, conf
 					</Grid>
 					<Grid size={2}>
 						<Tooltip title="Excluded" placement="top" arrow>
-							<Checkbox checked={excluded} onChange={handleExcludeRecipe} size="small"/>
+							<Checkbox checked={conf_excluded} onChange={handleExcludeRecipe} size="small"/>
 						</Tooltip>
 					</Grid>
 					<Grid size={2}>

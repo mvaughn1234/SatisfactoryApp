@@ -4,12 +4,7 @@ import {
 	fetchRecipesComponentsIds,
 	fetchRecipesGroupedDetail
 } from "../services/recipeService.ts";
-import {useRecipeConfigState} from '../store/RecipeConfigStore.tsx';
 
-export const useRecipeConfigForRecipe = (recipeId: number) => {
-	const { recipeConfigs } = useRecipeConfigState();
-	return useMemo(() => recipeConfigs[recipeId] || { learned: false, excluded: false }, [recipeConfigs, recipeId]);
-};
 
 export const useFetchRecipesComponentsDetail = () => {
 	const [data, setData] = useState([]);

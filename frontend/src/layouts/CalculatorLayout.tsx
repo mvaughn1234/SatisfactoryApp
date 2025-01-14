@@ -9,15 +9,16 @@ import React, {useEffect, useState} from 'react';
 import ActiveRecipeList from "../components/ActiveRecipeList.tsx";
 import D3GlobalResourceLimitViz from "../components/graphs/D3GlobalResourceLimitViz.tsx";
 import D3RawPieChartContainer from "../components/graphs/D3RawPieChart.tsx";
-import D3SnakeyGraphContainer from "../components/graphs/D3SnakeyGraph.tsx";
+import D3SnakeyGraphContainer from "../components/graphs/D3SankeyGraph.tsx";
 import D3NewResourceUseGraphContainer from "../components/graphs/NewD3ResourceUseGraph.tsx";
+import LoadingCalculationBar from "../components/LoadingCalculationBar.tsx";
 import ProductionTargetsGroup from "../components/ProductionTargetsGroup.tsx";
 import RecipeDrawer from "../components/RecipeDrawer.tsx";
 import {useProductionLineState, useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
 
 
 // Define drawer width here for consistency
-const globalRecipeDrawerWidth = 240;
+const globalRecipeDrawerWidth = 300;
 const activeRecipeDrawerWidth = 300;
 // const totalDrawerWidth = globalRecipeDrawerWidth + activeRecipeDrawerWidth;
 
@@ -129,7 +130,6 @@ const CalculatorLayout: React.FC = () => {
 					// pt: theme.mixins.toolbar.minHeight,
 				}}
 			>
-
 				{/*	/!* Tabs for production lines *!/*/}
 				{(!loadingState && activeTabId) &&
                 <Tabs
@@ -156,6 +156,7 @@ const CalculatorLayout: React.FC = () => {
 				>
 					<ProductionTargetsGroup/>
 				</Box>
+				{calculatingResult && <LoadingCalculationBar />}
 
 				<Box sx={{
 					flexGrow: 1

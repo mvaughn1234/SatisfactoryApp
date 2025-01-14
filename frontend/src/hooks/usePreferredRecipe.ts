@@ -1,13 +1,21 @@
+import {useDispatch, useSelector} from "react-redux";
 import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
 import {useProductionLineState, useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
-import {useRecipeConfigState, useRecipeConfigUpdate} from "../store/RecipeConfigStore.tsx";
+import {recipeConfigsSelectors, toggleRecipePropertyThunk} from "../store/recipeSlice.ts";
+import {AppDispatch, RootState} from "../store/recipeConfigsStore.ts";
 
 export const usePreferredRecipe = (recipe_id: number) => {
 	const {loading, recipesGroupedDetail} = useAppStaticData();
-	const {updateRecipesPreferred} = useRecipeConfigUpdate();
-	const {loadingRecipeConfigs, recipeConfigs} = useRecipeConfigState();
 	const {queueRecalculation} = useProductionLineUpdate();
 	const {activeTabId} = useProductionLineState();
+	const dispatch = useDispatch<AppDispatch>();
+	const loadingRecipeConfigs = useSelector((state: RootState) => state.recipes.loading);
+	const recipeConfigs = useSelector((state: RootState) =>
+		recipeConfigsSelectors.selectAll(state)
+	);
+	const thisRecipeConfig = useSelector((state: RootState) =>
+		recipeConfigsSelectors.selectById(state, recipe_id)
+	)
 
 	if (loading || loadingRecipeConfigs) {
 		return {
@@ -16,7 +24,6 @@ export const usePreferredRecipe = (recipe_id: number) => {
 			}
 		}
 	}
-
 
 	// Identify the recipe group for the given recipe_id
 	const recipeGroupStandardFirst = recipesGroupedDetail.find((group) =>
@@ -41,10 +48,13 @@ export const usePreferredRecipe = (recipe_id: number) => {
 	// You might have a structure in recipeConfigs that tells you which recipe is preferred.
 	// Let's assume `recipeConfigs[recipe_id].preferred` holds the currently preferred recipe_id for that group.
 	// If there's a group-level preferred property, you might look that up instead.
-	const currentPreferredId = recipeConfigs[recipe_id]?.preferred || null;
+	const currentPreferredId = thisRecipeConfig.preferred || null;
 	const groupHasPreference = allRecipes.reduce((count, recipe) => {
 		if (recipe) {
-			return count + (recipeConfigs[recipe.id]?.preferred === recipe?.id ? 1 : 0);
+			const currRecipeConfig = useSelector((state: RootState) =>
+				recipeConfigsSelectors.selectById(state, recipe.id)
+			)
+			return count + (currRecipeConfig.preferred === recipe?.id ? 1 : 0);
 		} else {
 			return count;
 		}
@@ -55,11 +65,11 @@ export const usePreferredRecipe = (recipe_id: number) => {
 	const setPreferred = (preferred: boolean) => {
 		// If preferred is true, set this recipe as the preferred one for all recipes in the group
 		if (preferred) {
-			allRecipes.forEach((r) => r && updateRecipesPreferred(r.id, recipe_id));
+			allRecipes.forEach((r) => r && dispatch(toggleRecipePropertyThunk({ id: r.id, property: 'preferred', newValue: recipe_id })));
 		} else {
 			// If not preferred, you might reset the preferred state, or set it to null
 			// This depends on how your store expects to handle "no preferred recipe"
-			allRecipes.forEach((r) => r && updateRecipesPreferred(r.id, r.id));
+			allRecipes.forEach((r) => r && dispatch(toggleRecipePropertyThunk({ id: r.id, property: 'preferred', newValue: r.id })));
 		}
 		if (activeTabId) {
 			queueRecalculation(activeTabId);

@@ -60,7 +60,7 @@ class ConfigurationService:
             # Convert to JSON and cache the result
             user_config_json = {
                 recipe_config.recipe_id: {
-                    'recipe_id': recipe_config.recipe_id,
+                    'id': recipe_config.recipe_id,
                     'known': recipe_config.known,
                     'excluded': recipe_config.excluded,
                     'preferred': recipe_config.preferred,
