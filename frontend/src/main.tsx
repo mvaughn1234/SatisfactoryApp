@@ -10,7 +10,7 @@ import { recipeConfigsStore } from './store/recipeConfigsStore.ts';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 root.render(
-	<React.StrictMode>
+	// <React.StrictMode>
 		<AppStaticDataProvider>  {/* Wrap the app in AppProvider */}
 			<ProductionLineProvider>
 				<Provider store={recipeConfigsStore}>
@@ -18,5 +18,5 @@ root.render(
 				</Provider>
 			</ProductionLineProvider>
 		</AppStaticDataProvider>
-	</React.StrictMode>
+	// </React.StrictMode>
 );
