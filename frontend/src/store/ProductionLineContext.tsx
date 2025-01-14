@@ -60,14 +60,16 @@ export const ProductionLineProvider: React.FC<ProductionLineProviderProps> = ({c
 	);
 
 	const queueRecalculation = useCallback(
-		debounce(async (lineId: string) => {
-			if (!productionLines[lineId]) return;
+		debounce(async (lineId?: string) => {
+			const lineIdSelected = lineId ? lineId : activeTabId ? activeTabId : '0'
+
+			if (!productionLines[lineIdSelected]) return;
 
 			setCalculatingResult(true);
 			try {
-				await calculateOptimization(lineId);
+				await calculateOptimization(lineIdSelected);
 			} catch (error) {
-				console.error(`Error recalculating optimization for line ${lineId}:`, error);
+				console.error(`Error recalculating optimization for line ${lineIdSelected}:`, error);
 			} finally {
 				setCalculatingResult(false);
 			}

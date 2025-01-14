@@ -18,7 +18,7 @@ export interface ProductionLineUpdate {
 	addProductionLine: (name: string) => void;
 	updateProductionLine: (id: string, updates: Partial<ProductionLine>) => void;
 	removeProductionLine: (id: string) => void;
-	queueRecalculation: DebouncedFunc<(lineId: string) => Promise<void>>;
+	queueRecalculation: DebouncedFunc<(lineId?: string) => Promise<void>>;
 }
 
 // RecipeConfigState for the context

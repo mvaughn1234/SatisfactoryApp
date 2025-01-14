@@ -131,9 +131,11 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({
 				// 	// console.log("onChange triggered:", newValue);
 				// 	setProduct(newValue as ItemDetail);
 				// }}
+				fullWidth
 				renderInput={(params) => (
-					<TextField {...params} label={(isDummy || !product) ? "Select Product" : ''} variant="standard" sx={{minWidth: 200}}/>
+					<TextField {...params} label={(isDummy || !product) ? "Select Product" : ''} variant="standard" />
 				)}
+				sx={{maxWidth: 300}}
 				ListboxComponent={CustomListboxComponent}
 				PopperComponent={StyledPopper}
 
@@ -156,7 +158,7 @@ const ProductionItemSelectorGroup: React.FC<Props> = ({
 				// onBlur={() => !isDummy && onEdit?.(target.id, product, rate)}
 				// Trigger commit to global state on losing focus
 				// onKeyDown={handleKeyDown} // Trigger blur on Enter
-				sx={{ml: 2, maxWidth: 50, minWidth: 30}}
+				sx={{ml: 2, minWidth: 40, maxWidth: 70}}
 			/>
 
 			{!isDummy && (

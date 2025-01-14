@@ -15,7 +15,7 @@ import {useSelector} from 'react-redux';
 import {useDebounce} from "../hooks/useDebounce.ts";
 import {usePreferredRecipe} from "../hooks/usePreferredRecipe.ts";
 import {useAppStaticData} from "../store/AppStaticDataStore.tsx";
-import {useProductionLineState} from "../store/ProductionLineContext.tsx";
+import {useProductionLineState, useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
 import {RootState} from "../store/recipeConfigsStore.ts";
 import {recipeConfigsSelectors} from "../store/recipeSlice.ts";
 import LoadingCalculationBar from "./LoadingCalculationBar.tsx";

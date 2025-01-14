@@ -4,6 +4,7 @@ import Grid from '@mui/material/Grid2';
 import React, {useCallback} from 'react';
 import {useDispatch, useSelector} from "react-redux";
 import {usePreferredRecipe} from "../hooks/usePreferredRecipe.ts";
+import {useProductionLineUpdate} from "../store/ProductionLineContext.tsx";
 import {recipeConfigsSelectors, toggleRecipePropertyThunk} from "../store/recipeSlice.ts";
 import {AppDispatch, RootState} from "../store/recipeConfigsStore.ts";
 import {RecipeDetail} from "../types/Recipe.ts";
@@ -20,16 +21,19 @@ const RecipeListItem: React.FC<RecipeListItemProps> = ({recipe, conf_known = tru
 	const recipeConfig = useSelector((state: RootState) =>
 		recipeConfigsSelectors.selectById(state, recipe.id)
 	);
+	const {queueRecalculation} = useProductionLineUpdate()
 
 
 	const handleLearnRecipe = () => {
 		const newValue = !recipeConfig.known;
 		dispatch(toggleRecipePropertyThunk({ id: recipe.id, property: 'known', newValue }));
+		queueRecalculation()
 	};
 
 	const handleExcludeRecipe = () => {
 		const newValue = !recipeConfig.excluded;
 		dispatch(toggleRecipePropertyThunk({ id: recipe.id, property: 'excluded', newValue}));
+		queueRecalculation()
 	};
 
 	const handlePreferredRecipe = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
