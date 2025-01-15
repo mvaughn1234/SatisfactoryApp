@@ -354,7 +354,7 @@ const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxH
 					<Grid size={{xs: 6, sm: 4, md: 4, lg: 4}} sx={{textAlign: "center"}} key={item.name}>
 						<MemoizedCircularResourceGraph width={80} data={item}/>
 						<Typography variant="subtitle1">{item.name}</Typography>
-						<Typography variant="bod2" component="div">
+						<Typography variant="body2" component="div">
 							{`${(100*(item.quantity/item.limit)).toFixed(2).toLocaleString()}%`}
 						</Typography>
 					</Grid>
