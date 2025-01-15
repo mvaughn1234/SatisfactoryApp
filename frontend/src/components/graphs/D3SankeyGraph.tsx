@@ -1,3 +1,7 @@
+import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
+import AlignHorizontalLeftIcon from '@mui/icons-material/AlignHorizontalLeft';
+import AlignHorizontalRightIcon from '@mui/icons-material/AlignHorizontalRight';
+import FormatAlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
 import {
 	Box,
 	FormControlLabel,
@@ -13,15 +17,11 @@ import {useTheme} from "@mui/material/styles";
 import useResizeObserver from "@react-hook/resize-observer";
 import * as d3 from "d3";
 import {SankeyGraph} from "d3-sankey";
-import {sankeyCircular, sankeyLeft, sankeyRight, sankeyCenter, sankeyJustify} from "d3-sankey-circular";
+import {sankeyCenter, sankeyCircular, sankeyJustify, sankeyLeft, sankeyRight} from "d3-sankey-circular";
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import useProcessedNodesAndLinks from "../../hooks/useProcessedNodesAndLinks.ts";
 import {NodesAndLinksData, SankeyNodesAndLinksData} from "../../types/Other.ts";
 import {OptimizationResult} from "../../types/ProductionLine.ts";
-import FormatAlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
-import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
-import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
-import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
 
 interface D3SnakeyGraphContainerProps {
 	data: OptimizationResult;
@@ -156,7 +156,7 @@ const D3SankeyGraph: React.FC<D3SnakeyGraphProps> = ({
 			.attr("height", graphHeight)
 			.attr("viewBox", [0, 0, graphWidth, graphHeight])
 			.attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;")
-			.style("background-color", theme.palette.background.paper)
+			.style("border-color", theme.palette.primary.main)
 
 		const format = d3.format(",.3f");
 		const mappedAlignment = {
@@ -308,7 +308,7 @@ const D3SankeyGraph: React.FC<D3SnakeyGraphProps> = ({
 				enter => {
 					const e = enter.append("rect");
 					e
-						.attr("stroke", (d) => (d.y1-d.y0) > 1 ? "#000" : "rgba(0,0,0,0.35)")
+						.attr("stroke", (d) => (d.y1 - d.y0) > 1 ? "#000" : "rgba(0,0,0,0.35)")
 						.attr("fill", d => colorScale(getNodeText(d, "category")))
 						.attr("x", d => d.x0)
 						.attr("y", d => d.y0)
@@ -576,13 +576,13 @@ const D3SnakeyGraphContainer: React.FC<D3SnakeyGraphContainerProps> = ({data, ma
 	};
 	const children = [
 		<ToggleButton value="sankeyLeft" key="left">
-			<FormatAlignLeftIcon/>
+			<AlignHorizontalLeftIcon/>
 		</ToggleButton>,
 		<ToggleButton value="sankeyCenter" key="center">
-			<FormatAlignCenterIcon/>
+			<AlignHorizontalCenterIcon/>
 		</ToggleButton>,
 		<ToggleButton value="sankeyRight" key="right">
-			<FormatAlignRightIcon/>
+			<AlignHorizontalRightIcon/>
 		</ToggleButton>,
 		<ToggleButton value="sankeyJustify" key="justify">
 			<FormatAlignJustifyIcon/>
@@ -602,10 +602,21 @@ const D3SnakeyGraphContainer: React.FC<D3SnakeyGraphContainerProps> = ({data, ma
 		>
 			<Stack direction="column">
 				<Typography variant="h4" gutterBottom>
-					Sankey Graph
+					Resource Flow Visualization
 				</Typography>
-
-				<Stack direction="row" spacing={2} sx={{justifyContent: "space-between"}}>
+				<div ref={containerRef}>
+					<Box sx={(theme) => ({
+						border: '1px solid',
+						borderColor: theme.palette.grey[200],
+						...theme.applyStyles('dark', {
+							borderColor: theme.palette.grey[700],
+					})
+					})}>
+						<D3SankeyGraph data={data} width={width} maxHeight={maxHeight} alignment={alignment}
+													 nodePadding={nodePadding / 100} toggleHighlightEffect={toggleHighlightEffect}/>
+					</Box>
+				</div>
+				<Stack direction="row" spacing={2} sx={{justifyContent: "space-between", pt: 2}}>
 
 					<Stack direction="column" sx={{display: 'flex', width: 80, alignItems: 'center'}}>
 						<Typography sx={{display: 'inline', width: 200}}>
@@ -628,10 +639,6 @@ const D3SnakeyGraphContainer: React.FC<D3SnakeyGraphContainerProps> = ({data, ma
 															label="Highlight"/>
 					</FormGroup>
 				</Stack>
-				<div ref={containerRef}>
-					<D3SankeyGraph data={data} width={width} maxHeight={maxHeight} alignment={alignment}
-												 nodePadding={nodePadding / 100} toggleHighlightEffect={toggleHighlightEffect}/>
-				</div>
 			</Stack>
 		</Box>
 	);

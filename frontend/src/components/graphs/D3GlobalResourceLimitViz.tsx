@@ -19,7 +19,6 @@ interface ArcData {
 	quantity: number;
 	limit: number;
 	gradient: string[];
-	backgroundColor: string;
 	startAngle?: number;
 	endAngle: number;
 }
@@ -36,6 +35,7 @@ interface CircularResourceGraphProps {
 }
 
 const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, data }) => {
+	const theme = useTheme()
 	const ringWidth = 10;
 	// Example: the radius is half the width minus half the ring thickness
 	const radius = width / 2 - ringWidth / 2;
@@ -129,7 +129,7 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 						.append("path")
 						.attr("class", "background-arc")
 						.attr("transform", `translate(${radius},${radius})`)
-						.attr("fill", (d) => d.backgroundColor)
+						.attr("fill", (d) => theme.palette.mode === "dark" ? theme.palette.grey[800] : theme.palette.grey[50])
 						// .attr("stroke", "#e6e6e6")
 						// .attr("stroke-width", 1)
 						// No transition if you don’t want the background to animate:
@@ -144,7 +144,7 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 				(update) =>
 					update
 						.attr("transform", `translate(${radius},${radius})`)
-						.attr("fill", (d) => d.backgroundColor)
+						.attr("fill", (d) => theme.palette.mode === "dark" ? theme.palette.grey[800] : theme.palette.grey[50])
 						.attr("d", (d) =>
 							bgArcGen({
 								...d,
@@ -263,7 +263,7 @@ const CircularResourceGraph: React.FC<CircularResourceGraphProps> = ({ width, da
 			);
 
 
-	}, [data, radius, data.backgroundColor]);
+	}, [data, radius, theme]);
 
 	return (
 		<div style={{
@@ -325,7 +325,6 @@ const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxH
 					"#2196F3",
 					"#1976D2",
 				],
-				backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey[700] : theme.palette.grey[50],
 				endAngle:
 					0.5 * 2 * Math.PI +
 					Math.min(item.total_quantity / (lookup[item.item_id]?.global_limit || 0), 1) *
@@ -354,8 +353,8 @@ const D3GlobalResourceLimitViz: React.FC<D3ResourceUseGraphProps> = ({data, maxH
 				{processedData.map((item) => (
 					<Grid size={{xs: 6, sm: 4, md: 4, lg: 4}} sx={{textAlign: "center"}} key={item.name}>
 						<MemoizedCircularResourceGraph width={80} data={item}/>
-						<Typography variant="h5">{item.name}</Typography>
-						<Typography variant="h6" component="div">
+						<Typography variant="subtitle1">{item.name}</Typography>
+						<Typography variant="bod2" component="div">
 							{`${(100*(item.quantity/item.limit)).toFixed(2).toLocaleString()}%`}
 						</Typography>
 					</Grid>

@@ -21,6 +21,7 @@ COPY . .
 # Set environment variables from .env (Optional if using docker-compose env_file)
 ENV FLASK_APP=run.py
 ENV FLASK_ENV=production
+#ENV FLASK_ENV=development
 
 # Expose the port Flask will run on
 EXPOSE 5000

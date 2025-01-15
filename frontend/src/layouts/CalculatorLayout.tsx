@@ -1,4 +1,5 @@
 // ./src/layouts/CalculatorLayout
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import {Box, Fab, Tab, Tabs} from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import Skeleton from "@mui/material/Skeleton";
@@ -25,15 +26,17 @@ const activeRecipeDrawerWidth = 300;
 const Item = styled(Box)(({theme}) => ({
 	// backgroundColor: '#fff',
 	// ...theme.typography.body2,
+	borderRadius: 8,
+	border: '1px solid',
+	borderColor: theme.palette.grey[200],
 	padding: theme.spacing(1),
+	margin: theme.spacing(2),
 	textAlign: 'center',
-	color: theme.palette.text.secondary,
 	// backgroundColor: theme.palette.background.paper,
-	// ...theme.applyStyles('dark', {
-	// 	backgroundColor: theme.palette.background.paper,
-	// }),
+	...theme.applyStyles('dark', {
+		borderColor: theme.palette.grey[700],
+	}),
 }));
-import ListAltIcon from '@mui/icons-material/ListAlt';
 const CalculatorLayout: React.FC = () => {
 	const {productionLines, activeTabId, loadingState, calculatingResult, optimizationResults} = useProductionLineState();
 	const {handleTabChange, addProductionLine} = useProductionLineUpdate();
@@ -152,7 +155,7 @@ const CalculatorLayout: React.FC = () => {
 				}
 
 				<Box
-					sx={{p: 2, borderBottom: `1px solid ${theme.palette.divider}`}}
+					sx={{px: 2, pt: 2}}
 				>
 					<ProductionTargetsGroup/>
 				</Box>
@@ -161,7 +164,7 @@ const CalculatorLayout: React.FC = () => {
 				<Box sx={{
 					flexGrow: 1
 				}}>
-					<Grid container spacing={{xs: 2, md: 3}} columns={{xs: 12}}>
+					<Grid container spacing={1} columns={{xs: 12}}>
 						{/*/!* Main Graph - Takes 9/12 of the Grid *!/*/}
 						<Grid size={{xs: 12, sm: 12, md: 12, lg: 12, xl: 8}}>
 							<Item>

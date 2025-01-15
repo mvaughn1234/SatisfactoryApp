@@ -49,7 +49,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 		if (!svgRef.current) return;
 
 		const processedData = processData(data.raw_resource_usage, raw_resource_lookup)
-		const height = processedData.length * 30 + 20 + 20;
+		const height = processedData.length * 35 + 20 + 20;
 		const margin = {top: 20, right: 10, bottom: 20, left: 105};
 
 		const svg = d3.select<SVGSVGElement, ProcessedDataResult>(svgRef.current)
@@ -66,7 +66,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 			.scaleBand()
 			.domain(processedData.map((d) => d.name))
 			.range([margin.top, height - margin.bottom])
-			.padding(0.1)
+			.padding(0.15)
 
 		svg.append("g")
 			.attr("transform", `translate(0, ${margin.top})`)
@@ -151,7 +151,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					})
 					.attr("width", 0)
 					.attr("height", yScale.bandwidth())
-					.attr("stroke", (d) => d.gradient[2])
+					.attr("stroke", (d) => theme.palette.text.primary)
 					.attr("stroke-width", 1)
 					// .attr("rx", 4)
 					// .attr("ry", 4)
@@ -167,7 +167,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					.duration(750)
 					.attr("rx", 0)
 					.attr("ry", 0)
-					.attr("stroke", (d) => d.gradient[2])
+					.attr("stroke", (d) => theme.palette.text.primary)
 					.attr("stroke-width", 1)
 
 					.attr("y", (d) => {
@@ -195,7 +195,6 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					.attr("text-anchor", "end")
 					.attr("fill", theme.palette.text.primary)
 					.attr("font-size", "16px")
-					.attr("font-weight", "bold") // Optional: Make it bold for better visibility
 					.text((d) => d.name),
 				update => update
 					.transition()
@@ -232,7 +231,6 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 						return barWidth > textWidth ? (darkLabels.find((label) => d.name === label) ? theme.palette.grey[800] : "white") : theme.palette.text.primary; // White for inside, dark for outside
 					})
 					.attr("font-size", "14px")
-					.attr("font-weight", "bold") // Optional: Make it bold for better visibility
 					.attr("text-anchor", "start")
 					.text((d) => `${d.quantity.toFixed(2).toLocaleString()} / min`),
 				update => update
@@ -241,7 +239,7 @@ const D3NewResourceUseGraph: React.FC<D3NewResourceGraphProps> = ({data, width, 
 					.attr("x", (d) => {
 						const barWidth = xScale(d.quantity) - margin.left; // Calculate bar width
 						const textWidth = (d.quantity.toFixed(2).length + 4.5) * 7.5; // Approximate text width (7.5px per character): + 4 for '/ min'
-						return barWidth > textWidth ? xScale(d.quantity) - textWidth + 3 : xScale(d.quantity) + 5; // Inside if wide enough, outside otherwise
+						return barWidth > textWidth ? xScale(d.quantity) - textWidth : xScale(d.quantity) + 5; // Inside if wide enough, outside otherwise
 					})
 					.attr("y", (d) => {
 						const yVal = yScale(d.name);

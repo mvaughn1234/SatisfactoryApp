@@ -1,5 +1,4 @@
 import {Box, Paper} from "@mui/material";
-import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid2";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";

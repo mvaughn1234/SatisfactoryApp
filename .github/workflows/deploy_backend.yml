@@ -25,10 +25,21 @@ jobs:
         run: |
           ssh-keyscan -H 45.77.202.161 >> ~/.ssh/known_hosts
 
-      # Transfer files to VPS
-      - name: Transfer backend files to VPS
+      # Stop the running containers on VPS
+      - name: Stop running containers on VPS
         run: |
-          rsync -avz --exclude '.git' ./backend/ root@45.77.202.161:/root/projects/SatisfactoryApp/backend/
+          ssh root@45.77.202.161 << 'EOF'
+          cd /root/projects/SatisfactoryApp
+          docker-compose down
+          EOF
+
+      # Sync files using git pull
+      - name: Sync files with git pull
+        run: |
+          ssh root@45.77.202.161 << 'EOF'
+          cd /root/projects/SatisfactoryApp
+          git pull origin main
+          EOF
 
       # SSH into VPS and deploy
       - name: Deploy backend
